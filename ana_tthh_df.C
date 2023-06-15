@@ -48,8 +48,8 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
 
                   .Define("category", ::defineCategory, {"nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet"})
 
-                  .Define("LepFromW", ::SelectWLep, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2"})
-                  .Define("nLepFromW", "Sum(LepFromW)");
+                  .Define("LepFromTop", ::SelectWLep, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2"})
+                  .Define("nLepFromTop", "Sum(LepFromTop)");
                   
 
     //object selection
@@ -63,6 +63,11 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
                   .Define("Jet_mass", "Jet.Mass[goodJet]")
                   .Define("Jet_btag", "Jet.BTag[goodJet]")
                   .Redefine("Jet_size", "Sum(goodJet)")
+
+                  .Define("bJet_pt", "Jet_pt[Jet_btag]")
+                  .Define("bJet_eta", "Jet_eta[Jet_btag]")
+                  .Define("bJet_phi", "Jet_phi[Jet_btag]")
+                  .Define("bJet_mass", "Jet_mass[Jet_btag]")
                   .Define("bJet_size", "Sum(Jet_btag)")
 
                   .Define("Muon_pt", "Muon.PT[goodMuon]")
@@ -87,11 +92,13 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
                       "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
                       "GenAddQuark_bi", "GenAddbQuark_bi", "GenAddcQuark_bi",
                       "GenAddJet_bi", "GenAddbJet_bi", "GenAddcJet_bi",
-                      "category", "LepFromW", "nLepFromW", 
+                      "category", "LepFromTop", "nLepFromTop", 
                       "goodJet", "goodElectron", "goodMuon",
                       "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "Jet_btag", "Jet_size",
+                      "bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass", "bJet_size",
                       "Muon_pt", "Muon_eta", "Muon_phi", "Muon_e", "Muon_size",
                       "Electron_pt", "Electron_eta", "Electron_phi", "Electron_e", "Electron_size",
+                      "Lepton_size",
     };
     df.Snapshot(treename, outdir+channel+".root", variables);
 
