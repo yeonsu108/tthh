@@ -15,15 +15,15 @@ R__LOAD_LIBRARY(libDelphes)
 
 #include "utility.h"
 
-void ana_tthh_df(){
+void ana_tthh_df(std::string channel, std::string outdir="./output/"){
     gSystem->Load("libDelphes");
 
-    auto filename = "/data1/users/itseyes/tthh/14TeV/di_leptonic_Htobb/Events/TTHH_14TeV_D3.root";
+    auto infile = "/data1/users/itseyes/tthh/13.6TeV/"+channel+"/Events/*.root";
+    std::cout << infile << std::endl;
+    std::cout << outdir << std::endl;
     auto treename = "Delphes";
-    
 
-    auto _df = ROOT::RDataFrame(treename, filename);
-
+    auto _df = ROOT::RDataFrame(treename, infile);
 
     //GenParticle Selection
     auto df1 = _df.Define("GenAddQuark_bi", ::SelectAddQuark, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2"})
@@ -63,6 +63,7 @@ void ana_tthh_df(){
                   .Define("Jet_mass", "Jet.Mass[goodJet]")
                   .Define("Jet_btag", "Jet.BTag[goodJet]")
                   .Redefine("Jet_size", "Sum(goodJet)")
+                  .Define("bJet_size", "Sum(Jet_btag)")
 
                   .Define("Muon_pt", "Muon.PT[goodMuon]")
                   .Define("Muon_eta", "Muon.Eta[goodMuon]")
@@ -76,18 +77,23 @@ void ana_tthh_df(){
                   .Define("Electron_phi", "Electron.Phi[goodElectron]")
                   .Define("Electron_t", "Electron.T[goodElectron]")
                   .Define("Electron_e", ::GetE, {"Electron_pt", "Electron_eta", "Electron_phi", "Electron_t"})
-                  .Redefine("Electron_size", "Sum(goodElectron)");
+                  .Redefine("Electron_size", "Sum(goodElectron)")
+                  .Define("Lepton_size", "Muon_size+Electron_size");
+
+    auto df = df2;
 
     std::initializer_list<std::string> variables = {//"Event", "Jet", "Muon", "Electron",
+                      "nGenAddQuark", "nGenAddbQuark", "nGenAddcQuark", // "nGenAddlfQuark",
+                      "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
+                      "GenAddQuark_bi", "GenAddbQuark_bi", "GenAddcQuark_bi",
+                      "GenAddJet_bi", "GenAddbJet_bi", "GenAddcJet_bi",
+                      "category", "LepFromW", "nLepFromW", 
                       "goodJet", "goodElectron", "goodMuon",
                       "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "Jet_btag", "Jet_size",
                       "Muon_pt", "Muon_eta", "Muon_phi", "Muon_e", "Muon_size",
                       "Electron_pt", "Electron_eta", "Electron_phi", "Electron_e", "Electron_size",
-                      "GenAddQuark_idx", "GenAddbQuark_idx", "GenAddJet_idx", "category",
-                      "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
-                      "nLepFromW",
     };
-    df2.Snapshot("outputTree", "out.root", variables);
+    df.Snapshot(treename, outdir+channel+".root", variables);
 
     //df.Snapshot<TClonesArray, TClonesArray, TClonesArray, TClonesArray>("outputTree", "out.root", variables, ROOT::RDF::RSnapshotOptions("RECreate", ROOT::kZLIB, 1, 0, 99, false));
     //df.Snapshot<TClonesArray, TClonesArray, TClonesArray, TClonesArray>("outputTree", "out.root", {"Event", "Electron", "Muon", "Jet"}, ROOT::RDF::RSnapshotOptions("RECreate", ROOT::kZLIB, 1, 0, 99, false));
