@@ -48,8 +48,36 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
 
                   .Define("category", ::defineCategory, {"nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet"})
 
-                  .Define("LepFromTop", ::SelectWLep, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2"})
-                  .Define("nLepFromTop", "Sum(LepFromTop)");
+
+                  .Define("Top_pid", "int(6)")
+                  .Define("W_pid", "int(24)")
+                  .Define("b_pid", "int(5)")
+                  .Define("Electron_pid", "int(11)")
+                  .Define("Muon_pid", "int(13)")
+                  .Define("isLast", ::isLast, {"Particle.PID", "Particle.D1", "Particle.D2"})
+                  
+                  .Define("Top", "Particle.PID == 6 && isLast")
+                  .Define("nTop", "Sum(Top)")
+                  .Define("W", "Particle.PID == 24 && isLast")
+                  .Define("nW", "Sum(W)")
+                  .Define("WFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "W_pid", "Top_pid"})
+                  .Define("nWFromTop", "Sum(WFromTop)")
+                  .Define("GenbQuark", "Particle.PID == 5 && isLast")
+                  .Define("nGenbQuark", "Sum(GenbQuark)")
+                  .Define("bFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "b_pid", "Top_pid"})
+                  .Define("nbFromTop", "Sum(bFromTop)")
+
+
+                  .Define("ElectronFromW", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Electron_pid", "W_pid"})
+                  .Define("nElectronFromW", "Sum(ElectronFromW)")
+                  .Define("ElectronFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Electron_pid", "Top_pid"})
+                  .Define("nElectronFromTop", "Sum(ElectronFromTop)")
+                  .Define("MuonFromW", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Muon_pid", "W_pid"})
+                  .Define("nMuonFromW", "Sum(MuonFromW)")
+                  .Define("MuonFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Muon_pid", "Top_pid"})
+                  .Define("nMuonFromTop", "Sum(MuonFromTop)")
+                  .Define("nLepFromW", "nElectronFromW+nMuonFromW")
+                  .Define("nLepFromTop", "nElectronFromTop+nMuonFromTop");
                   
 
     //object selection
@@ -92,7 +120,10 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
                       "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
                       "GenAddQuark_bi", "GenAddbQuark_bi", "GenAddcQuark_bi",
                       "GenAddJet_bi", "GenAddbJet_bi", "GenAddcJet_bi",
-                      "category", "LepFromTop", "nLepFromTop", 
+                      "nTop", "nW", "nWFromTop", "nGenbQuark", "nbFromTop",
+                      "nElectronFromTop", "nElectronFromW", "nMuonFromTop", "nMuonFromW",
+                      "nLepFromTop", "nLepFromW",
+
                       "goodJet", "goodElectron", "goodMuon",
                       "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "Jet_btag", "Jet_size",
                       "bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass", "bJet_size",
@@ -101,6 +132,7 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
                       "Lepton_size",
     };
     df.Snapshot(treename, outdir+channel+".root", variables);
+    std::cout << "done" << std::endl;
 
     //df.Snapshot<TClonesArray, TClonesArray, TClonesArray, TClonesArray>("outputTree", "out.root", variables, ROOT::RDF::RSnapshotOptions("RECreate", ROOT::kZLIB, 1, 0, 99, false));
     //df.Snapshot<TClonesArray, TClonesArray, TClonesArray, TClonesArray>("outputTree", "out.root", {"Event", "Electron", "Muon", "Jet"}, ROOT::RDF::RSnapshotOptions("RECreate", ROOT::kZLIB, 1, 0, 99, false));

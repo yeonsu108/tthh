@@ -50,12 +50,20 @@ ints SelectAddQuark(ints pid, ints m1, ints m2, ints d1, ints d2){
     return out;   
 }
 
-ints SelectWLep(ints pid, ints m1, ints m2, ints d1, ints d2){
+ints isLast (ints pid, ints d1, ints d2){
     ints out;
     for (int i=0; i<int(pid.size()); i++){
-        if (abs(pid[i]) != 11 && abs(pid[i]) != 13) out.push_back(0);
-        else if (pid[i] == pid[d1[i]] || pid[i] == pid[d2[i]]) out.push_back(0);
-        else if (isFromTop(pid, m1, m2, i, 6)) out.push_back(1); //isFromW
+        if ((d1[i]>=0 && pid[i]==pid[d1[i]]) || (d2[i]>=0 && pid[i]==pid[d2[i]])) out.push_back(0);
+        else out.push_back(1);
+    }
+    return out;
+}
+
+ints FromMother(ints pid, ints m1, ints m2, ints d1, ints d2, int targetPID, int motherPID){
+    ints out;
+    for (int i=0; i<int(pid.size()); i++){
+        if (abs(pid[i]) != targetPID) out.push_back(0);
+        else if ((m1[i]>=0 && abs(pid[m1[i]])==motherPID) || (m2[i]>=0 && abs(pid[m2[i]])==motherPID)) out.push_back(1);
         else out.push_back(0);
     }
     return out;   

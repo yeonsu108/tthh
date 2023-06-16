@@ -2,17 +2,12 @@ import ROOT
 import numpy as np
 ROOT.gStyle.SetOptStat(0)
 
-tthh   = "./samples/tthh.root"
-ttbbbb = "./samples/ttbbbb.root"
-ttbbcc = "./samples/ttbbcc.root"
-ttbb   = "./samples/ttbb.root"
-TreeName = "Delphes"
-
 # RDF
-tthh   = ROOT.RDataFrame(TreeName, tthh)
-ttbbbb = ROOT.RDataFrame(TreeName, ttbbbb)
-ttbbcc = ROOT.RDataFrame(TreeName, ttbbcc)
-ttbb   = ROOT.RDataFrame(TreeName, ttbb)
+TreeName = "Delphes"
+tthh   = ROOT.RDataFrame(TreeName, "./samples/tthh.root")
+ttbbbb = ROOT.RDataFrame(TreeName, "./samples/ttbbbb.root")
+ttbbcc = ROOT.RDataFrame(TreeName, "./samples/ttbbcc.root")
+ttbb   = ROOT.RDataFrame(TreeName, "./samples/ttbb.root")
 dfs = {"tthh": tthh, "ttbbbb": ttbbbb, "ttbbcc": ttbbcc, "ttbb": ttbb }
 
 def drawHisto(hists, dfs, flag="_S0"):
@@ -24,9 +19,13 @@ def drawHisto(hists, dfs, flag="_S0"):
         ymax, color = 0, 1
         for df_name, df in dfs.items():
             nbin, xmin, xmax = 20, 0, 400
-            if df.Max(hist_name).GetValue() < 100: xmax = 100
-            if df.Max(hist_name).GetValue() < 20: nbin, xmax = 12, 12
-            if df.Min(hist_name).GetValue() < 0: nbin, xmin, xmax = 20, -4, 4
+            _xmax = df.Max(hist_name).GetValue()
+            print (df_name)
+            print (hist_name)
+            if _xmax < 100: xmax = 100
+            if _xmax < 20: nbin, xmax = int(_xmax+2), int(_xmax+2)
+            if _xmax < 0: nbin, xmin, xmax = 20, -4, 4
+            print (nbin, xmin, xmax)
             h = df.Histo1D(ROOT.RDF.TH1DModel(hist_name, hist_name, nbin, xmin, xmax), hist_name)
             if ymax < h.GetMaximum(): ymax = h.GetMaximum()
             h.GetXaxis().SetTitle(hist_name)
@@ -39,8 +38,8 @@ def drawHisto(hists, dfs, flag="_S0"):
 
         first = True
         for _tmp, h in hist_dict.items():
+            h.SetMaximum(ymax * 1.4)
             if first:
-                h.SetMaximum(ymax + 0.2)
                 h.DrawNormalized("hist")
                 first = False
             else: h.DrawNormalized("same")
@@ -50,9 +49,12 @@ def drawHisto(hists, dfs, flag="_S0"):
 
 ## Histogram Features  
 hists_S0 = [
-        "Muon_size", "Electron_size", "Jet_size",
         "nGenAddQuark", "nGenAddbQuark", "nGenAddcQuark",
-        "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet", "nLepFromTop",
+        "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
+        "nTop", "nW", "nWFromTop", "nGenbQuark", "nbFromTop",
+        "nElectronFromTop", "nElectronFromW", "nMuonFromTop", "nMuonFromW",
+        "nLepFromTop", "nLepFromW",
+        "Jet_size", "bJet_size", "Muon_size", "Electron_size", "Lepton_size",
 ]
 
 hists_S1 = hists_S0 + [
