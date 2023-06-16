@@ -27,8 +27,8 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
 
     //GenParticle Selection
     auto df1 = _df.Define("GenAddQuark_bi", ::SelectAddQuark, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2"})
-                  .Define("GenAddbQuark_bi", "abs(Particle.PID == 5) && GenAddQuark_bi == 1")
-                  .Define("GenAddcQuark_bi", "abs(Particle.PID == 4) && GenAddQuark_bi == 1")
+                  .Define("GenAddbQuark_bi", "abs(Particle.PID) == 5 && GenAddQuark_bi == 1")
+                  .Define("GenAddcQuark_bi", "abs(Particle.PID) == 4 && GenAddQuark_bi == 1")
                   
                   .Define("int0", "int(0)")
                   .Define("int1", "int(1)")
@@ -56,28 +56,25 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
                   .Define("Muon_pid", "int(13)")
                   .Define("isLast", ::isLast, {"Particle.PID", "Particle.D1", "Particle.D2"})
                   
-                  .Define("Top", "Particle.PID == 6 && isLast")
+                  .Define("Top", "abs(Particle.PID) == 6 && isLast")
                   .Define("nTop", "Sum(Top)")
-                  .Define("W", "Particle.PID == 24 && isLast")
+                  .Define("W", "abs(Particle.PID) == 24 && isLast")
                   .Define("nW", "Sum(W)")
                   .Define("WFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "W_pid", "Top_pid"})
                   .Define("nWFromTop", "Sum(WFromTop)")
-                  .Define("GenbQuark", "Particle.PID == 5 && isLast")
+                  .Define("GenbQuark", "abs(Particle.PID) == 5 && isLast")
                   .Define("nGenbQuark", "Sum(GenbQuark)")
+                  .Define("GencQuark", "abs(Particle.PID) == 4 && isLast")
+                  .Define("nGencQuark", "Sum(GencQuark)")
                   .Define("bFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "b_pid", "Top_pid"})
                   .Define("nbFromTop", "Sum(bFromTop)")
 
 
                   .Define("ElectronFromW", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Electron_pid", "W_pid"})
                   .Define("nElectronFromW", "Sum(ElectronFromW)")
-                  .Define("ElectronFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Electron_pid", "Top_pid"})
-                  .Define("nElectronFromTop", "Sum(ElectronFromTop)")
                   .Define("MuonFromW", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Muon_pid", "W_pid"})
                   .Define("nMuonFromW", "Sum(MuonFromW)")
-                  .Define("MuonFromTop", ::FromMother, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Muon_pid", "Top_pid"})
-                  .Define("nMuonFromTop", "Sum(MuonFromTop)")
-                  .Define("nLepFromW", "nElectronFromW+nMuonFromW")
-                  .Define("nLepFromTop", "nElectronFromTop+nMuonFromTop");
+                  .Define("nLepFromW", "nElectronFromW+nMuonFromW");
                   
 
     //object selection
@@ -120,9 +117,8 @@ void ana_tthh_df(std::string channel, std::string outdir="./output/"){
                       "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
                       "GenAddQuark_bi", "GenAddbQuark_bi", "GenAddcQuark_bi",
                       "GenAddJet_bi", "GenAddbJet_bi", "GenAddcJet_bi",
-                      "nTop", "nW", "nWFromTop", "nGenbQuark", "nbFromTop",
-                      "nElectronFromTop", "nElectronFromW", "nMuonFromTop", "nMuonFromW",
-                      "nLepFromTop", "nLepFromW",
+                      "nTop", "nW", "nWFromTop", "nGenbQuark", "nbFromTop", "nGencQuark",
+                      "nElectronFromW", "nMuonFromW", "nLepFromW",
 
                       "goodJet", "goodElectron", "goodMuon",
                       "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "Jet_btag", "Jet_size",
