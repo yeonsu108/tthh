@@ -1,6 +1,9 @@
 import ROOT
 import numpy as np
-ROOT.gStyle.SetOptStat(0)
+import os
+
+if not os.path.isdir("plots"):
+    os.mkdir("plots")
 
 # RDF
 TreeName = "Delphes"
@@ -11,25 +14,27 @@ ttbb   = ROOT.RDataFrame(TreeName, "./samples/ttbb.root")
 dfs = {"tthh": tthh, "ttbbbb": ttbbbb, "ttbbcc": ttbbcc, "ttbb": ttbb }
 
 def drawHisto(hists, dfs, flag="_S0"):
-    canvas = ROOT.TCanvas("c", "c", 400, 400)
+    canvas = ROOT.TCanvas("c", "c", 600, 600)
+    canvas.SetMargin(0.1, 0.05, 0.1, 0.05)
+    ROOT.gStyle.SetOptStat(0)
+    ROOT.gStyle.SetOptTitle(0)
     for hist_name in hists:
+        legend = ROOT.TLegend(0.75, 0.7, 0.9, 0.9)
+        ROOT.gStyle.SetLegendTextSize(0.04)
+        legend.SetBorderSize(0)
         hist_dict = {}
-        legend = ROOT.TLegend(0.75, 0.75, 0.85, 0.85)
 
         ymax, color = 0, 1
         for df_name, df in dfs.items():
             nbin, xmin, xmax = 20, 0, 400
             _xmax = df.Max(hist_name).GetValue()
-            print (df_name)
-            print (hist_name)
             if _xmax < 100: xmax = 100
             if _xmax < 20: nbin, xmax = int(_xmax+2), int(_xmax+2)
             if _xmax < 0: nbin, xmin, xmax = 20, -4, 4
-            print (nbin, xmin, xmax)
             h = df.Histo1D(ROOT.RDF.TH1DModel(hist_name, hist_name, nbin, xmin, xmax), hist_name)
             if ymax < h.GetMaximum(): ymax = h.GetMaximum()
             h.GetXaxis().SetTitle(hist_name)
-            h.GetYaxis().SetTitle("a.u.")
+            h.GetYaxis().SetTitle("Normalized Entries")
             h.SetLineColor(color)
             color+=1
             h.SetLineWidth(2)
@@ -51,9 +56,8 @@ def drawHisto(hists, dfs, flag="_S0"):
 hists_S0 = [
         "nGenAddQuark", "nGenAddbQuark", "nGenAddcQuark",
         "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
-        "nTop", "nW", "nWFromTop", "nGenbQuark", "nbFromTop",
-        "nElectronFromTop", "nElectronFromW", "nMuonFromTop", "nMuonFromW",
-        "nLepFromTop", "nLepFromW",
+        "nTop", "nW", "nWFromTop", "nGenbQuark", "nbFromTop", "nGencQuark",
+        "nElectronFromW", "nMuonFromW", "nLepFromW",
         "Jet_size", "bJet_size", "Muon_size", "Electron_size", "Lepton_size",
 ]
 
@@ -71,6 +75,7 @@ hists_S3 = hists_S2 + [
 
 # nocut
 drawHisto(hists_S0, dfs, "_S0")
+exit()
 
 # cut1. nLepton selection
 for dfname, df in dfs.items():
