@@ -10,8 +10,8 @@ import numpy as np
 import tensorflow as tf
 import pickle
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.utils.np_utils import to_categorical
 from utils.plots import *
-from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 
 # MODIFY !!!
@@ -119,16 +119,14 @@ hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
 
 
 pred_train = model.predict_classes(x_train)
+y_train = y_train.T[0]
 print("pred_train", pred_train)
-print("orig train", y_train.T)
+print("orig train", y_train)
 #train_result = pd.DataFrame(np.array([y_train.T[0], pred_train.T[1]]).T, columns=["True", "Pred"])
 pred_val = model.predict_classes(x_val)
+y_val = y_val.T[0]
 print("pred_val", pred_val)
-print("orig train", y_val.T)
-print("conf matrix on train set ")
-print(confusion_matrix(y_train, pred_train))
-print("conf matrix on val set ")
-print(confusion_matrix(y_val, pred_val))
+print("orig train", y_val)
 
 plot_confusion_matrix(y_val, pred_val, classes=class_names,
                     title='Confusion matrix, without normalization', savename=train_outdir+"/confusion_matrix_val.pdf")
@@ -142,14 +140,13 @@ plot_confusion_matrix(y_train, pred_train, classes=class_names, normalize=True,
 pred_val = model.predict(x_val)
 pred_train = model.predict(x_train)
 
-exit()
-print(pred_val)
-print(pred_val.T)
-print(y_val)
-print(y_val.T)
-val_result = pd.DataFrame(np.array([y_val.T, pred_val.T[1]]).T, columns=["True", "Pred"])
-train_result = pd.DataFrame(np.array([y_train.T, pred_train.T[1]]).T, columns=["True", "Pred"])
-plot_output_dist(train_result, val_result, sig="tt",savedir=train_outdir)
-val_result = pd.DataFrame(np.array([y_val.T, pred_val.T[2]]).T, columns=["True", "Pred"])
-train_result = pd.DataFrame(np.array([y_train.T, pred_train.T[2]]).T, columns=["True", "Pred"])
-plot_output_dist(train_result, val_result, sig="st",savedir=train_outdir)
+print("pred_val", pred_val)
+print(" _T", pred_val.T)
+print(" _T", pred_val.T.shape)
+print("y_val", y_val)
+print(" _T", y_val.shape)
+
+for i in range(len(class_names)):
+    val_result = pd.DataFrame(np.array([y_val.T, pred_val.T[i]]).T, columns=["True", "Pred"])
+    train_result = pd.DataFrame(np.array([y_train.T, pred_train.T[i]]).T, columns=["True", "Pred"])
+    plot_output_dist(train_result, val_result, sig=class_names[i],savedir=train_outdir)

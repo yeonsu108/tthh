@@ -67,13 +67,13 @@ def plot_performance(hist, savedir="./"):
     plt.savefig(os.path.join(savedir+'/fig_score_loss.pdf'))
     plt.gcf().clear()
 
-def plot_output_dist(train, test,sig="st", savedir="./"):
+def plot_output_dist(train, test,sig="tthh", savedir="./"):
     #sig can be "tt" or "st"
-    sig_class = {"st":2,"tt":1}
+    sig_class = {"tthh":0, "ttbb":1, "ttbbbb":2, "ttbbcc":3}
     sigtrain = np.array(train[train["True"]==sig_class[sig]]["Pred"])
-    bkgtrain = np.array(train[train["True"]==0]["Pred"])
+    bkgtrain = np.array(train[train["True"]!=sig_class[sig]]["Pred"])
     sigtest = np.array(test[test["True"]==sig_class[sig]]["Pred"])
-    bkgtest = np.array(test[test["True"]==0]["Pred"])
+    bkgtest = np.array(test[test["True"]!=sig_class[sig]]["Pred"])
     bins=40
     scores = [sigtrain, sigtest, bkgtrain, bkgtest]
     #print (scores)
@@ -81,22 +81,19 @@ def plot_output_dist(train, test,sig="st", savedir="./"):
     high = max(np.max(d) for d in scores)
 
     # test is dotted
-    plt.hist(sigtrain, color="b", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label=sig+" train")
-    plt.hist(bkgtrain, color="r", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label="bkg train")
-    # train is filled
-#    plt.hist(sigtest, color="b", range=(low, high), bins=bins, histtype="step", density=True, label="sig test")
-#    plt.hist(bkgtest, color="r", range=(low, high), bins=bins, histtype="step", density=True, label="bkg test")
+    plt.hist(sigtrain, color="b", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label=sig+" (train)")
+    plt.hist(bkgtrain, color="r", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label="Others (train)")
 
     hist, bins = np.histogram(sigtest, bins=bins, range=(low,high), density=True)
     scale = len(sigtest) / sum(hist)
     err = np.sqrt(hist * scale) / scale
     width = (bins[1] - bins[0])
     center = (bins[:-1] + bins[1:]) / 2
-    plt.errorbar(center, hist, yerr=err, fmt='o', c='b', label='S (test):'+sig)
+    plt.errorbar(center, hist, yerr=err, fmt='o', c='b', label=sig+' (test)')
     hist, bins = np.histogram(bkgtest, bins=bins, range=(low,high), density=True)
     scale = len(bkgtest) / sum(hist)
     err = np.sqrt(hist * scale) / scale
-    plt.errorbar(center, hist, yerr=err, fmt='o', c='r', label='B (test)')
+    plt.errorbar(center, hist, yerr=err, fmt='o', c='r', label='Others (test)')
 
     plt.title("Output distribution")
     plt.ylabel("entry")
