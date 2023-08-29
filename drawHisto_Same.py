@@ -1,9 +1,9 @@
-# conda activate py36
 import ROOT
 import numpy as np
 import os
+ROOT.gStyle.SetOptStat(0)
 
-# Criteria
+# RDF
 DATA = "_Semi"
 OS = "OS" + DATA
 Tree = "Delphes"
@@ -16,54 +16,66 @@ ttbbcc = ROOT.RDataFrame(Tree, indir + OS + "_ttbbcc.root")
 ttbb   = ROOT.RDataFrame(Tree, indir + OS + "_ttbb.root")
 dfs = {"_tthh": tthh, "_ttbbbb": ttbbbb, "_ttbbcc": ttbbcc, "_ttbb": ttbb }
 
-# Output
-outdir = "./plots/"+ OS + "/"
+# OutDirectory. Modify!!
+outdir = "./plots/" + OS + "/Same/"
 try : os.mkdir(outdir)
 except : pass
 
 # Definition
-def drawHistoSingle(hists, dfs, flag="_S0"):
+def drawHisto(hists, dfs, flag="_S0"):
     canvas = ROOT.TCanvas("c", "c", 400, 400)
     for hist_name in hists:
         hist_dict = {}
+        legend = ROOT.TLegend(0.60, 0.9, 0.9, 0.70)
+        hist_title = hist_name.replace("_size", " multiplicity")
+        hist_title = hist_title.replace("_", " ")
 
+        ymax, color = 0, 1
         for df_name, df in dfs.items():
             nbin, xmin, xmax = 40, 0, 400
             _xmax = df.Max(hist_name).GetValue()
             if _xmax < 100: xmax = 100
-            if _xmax < 20: nbin, xmax = 12, 6 #int(_xmax+2), int(_xmax+2)
+            if _xmax < 20: nbin, xmax = int(_xmax+2), int(_xmax+2)
             if _xmax < 0: nbin, xmin, xmax = 20, -4, 4
-            hist_title = hist_name.replace("_size", " multiplicity")
-            hist_title = hist_title.replace("_", " ")
-            hist_title = hist_title + df_name
             h = df.Histo1D(ROOT.RDF.TH1DModel(hist_name, hist_title, nbin, xmin, xmax), hist_name)
+            if ymax < h.GetMaximum(): ymax = h.GetMaximum()
             h.GetXaxis().SetTitle(hist_title)
-            h.GetYaxis().SetTitle("Normalized Entries")
-            h.GetYaxis().SetTitleOffset(1.5)                           
+            h.GetYaxis().SetTitle("Normalized entries")
+            h.GetYaxis().SetTitleOffset(1.8)                           
+            h.SetLineColor(color)
+            color+=1
             h.SetLineWidth(2)
-            hist_dict[hist_name + df_name] = h
+            legend.AddEntry(h.GetValue(), df_name, "l")
+            hist_dict[hist_name + "_" + df_name] = h
 
+        first = True
         for _tmp, h in hist_dict.items():
-            h.DrawNormalized("hist")
-            canvas.Print(outdir + OS + "_" + _tmp + flag + ".pdf")
-            canvas.Clear()
+            h.SetMaximum(ymax * 2.5)
+            if first:
+                h.DrawNormalized("hist")
+                first = False
+            else: h.DrawNormalized("same")
+        legend.Draw()
+        canvas.Print(outdir + OS + "_" + hist_name + flag + ".pdf")
+        canvas.Clear()
+
 
 # Histogram Config #
 hists_S0 = [
 
-    # nGen Quark 
+    # nGen Quark
     "nTop", "nHiggs", "nHiggs1", "nHiggs2", "nW", "nGluon", "nGenbQuark", "nGencQuark",
     "nWFromTop", "nbFromTop", "nbFromHiggs", "nbFromHiggs1", "nbFromHiggs2",
     "nbFromGluon", "nHiggsFromTop", "nElectronFromW", "nMuonFromW", "nLepFromW",
     "nGenAddQuark", "nGenAddbQuark", "nGenAddcQuark",
 
-    # nGen Jet 
+    # nGen Jet
     "nGenbJet", "nGencJet",
     "nGenbJetFromTop", "nGenbJetFromHiggs", "nGenbJetFromHiggs1", "nGenbJetFromHiggs2",
     "nGenAddJet", "nGenAddbJet", "nGenAddcJet", "nGenAddlfJet",
     "category", "ttbbbb_val", "ttbbcc_val",
 
-    # Gen Quark 4-vector 
+    # Gen Quark 4-vector
     "GenTop_mass", "GenHiggs_mass",
     "GenbQuark_pt", "GenbQuark_eta", "GenbQuark_phi",
     "GenElectronFromW_pt", "GenElectronFromW_eta", "GenElectronFromW_phi",
@@ -80,7 +92,7 @@ hists_S0 = [
     "GenbJetFromHiggs2_pt", "GenbJetFromHiggs2_eta", "GenbJetFromHiggs2_phi", "GenbJetFromHiggs2_mass",
     "GenAddJet_pt", "GenAddJet_eta", "GenAddJet_phi", "GenAddbJet_pt", "GenAddbJet_eta", "GenAddbJet_phi",
 
-    # Gen dR 
+    # Gen dR
     "GenbJetFromTop_dr", "GenbJetFromHiggs1_dr", "GenbJetFromHiggs2_dr", "GenbJetFromHiggs_dr",
     "HiggsFromWhere",
 
@@ -91,8 +103,8 @@ hists_S0 = [
     "Muon_pt", "Muon_eta", "Muon_phi", "Muon_t", "Muon_e", "Muon_size",
     "Electron_pt", "Electron_eta", "Electron_phi", "Electron_t", "Electron_e", "Electron_size",
     "Lepton_size", "Lepton_pt",
-    "Higgs_vars", "Higgs_pt", "Higgs_eta", "Higgs_phi", "Higgs_mass"                      
-                      
+    "Higgs_vars", "Higgs_pt", "Higgs_eta", "Higgs_phi", "Higgs_mass"
+
 ]
 
 hists_S1 = hists_S0 + [
@@ -104,20 +116,20 @@ hists_S2 = hists_S1 + [
 ]
 
 hists_S3 = hists_S2 + [
-    "bJet1_pt", "bJet2_pt", "bJet3_pt" 
+    "bJet1_pt", "bJet2_pt", "bJet3_pt"
 ]
 
 
 # Draw #
-drawHistoSingle(hists_S0, dfs, "_S0")
+drawHisto(hists_S0, dfs, "_S0")
 
 # Event Selection and Draw
-# ES1 : Lepton 
+# ES1 : Lepton
 for dfname, df in dfs.items():
     df = df.Filter("Muon_size == 1")\
-           .Define("Muon1_pt", "Muon_pt[0]") 
+           .Define("Muon1_pt", "Muon_pt[0]")
     dfs[dfname] = df
-drawHistoSingle(hists_S1, dfs, "_S1")
+drawHisto(hists_S1, dfs, "_S1")
 
 # ES2 : Jet
 for dfname, df in dfs.items():
@@ -128,7 +140,7 @@ for dfname, df in dfs.items():
            .Define("Jet4_pt", "Jet_pt[3]")\
            .Define("Jet5_pt", "Jet_pt[4]")
     dfs[dfname] = df
-drawHistoSingle(hists_S2, dfs, "_S2")
+drawHisto(hists_S2, dfs, "_S2")
 
 # ES3 : bJet
 for dfname, df in dfs.items():
@@ -137,5 +149,5 @@ for dfname, df in dfs.items():
            .Define("bJet2_pt", "bJet_pt[1]")\
            .Define("bJet3_pt", "bJet_pt[2]")
     dfs[dfname] = df
-drawHistoSingle(hists_S3, dfs, "_S3")
+drawHisto(hists_S3, dfs, "_S3")
 
