@@ -1,3 +1,5 @@
+# ssh gpu-0-X
+# conda activate py36
 import os
 import sys
 
@@ -10,29 +12,47 @@ import numpy as np
 import tensorflow as tf
 import pickle
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.utils.np_utils import to_categorical
 from utils.plots import *
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 
-# MODIFY !!!
-train_outdir = "dnn_tthh_0711"
-os.makedirs(train_outdir, exist_ok=True)
+# Criteria #
+DATA = "_Semi"
+OS = "OS" + DATA
 class_names = ["tthh","ttbb", "ttbbbb", "ttbbcc"]
 
-print("Start multi Training")
 epochs = 1000
 inputvars = [
-            "Jet_size", "bJet_size", "Muon_size", "Electron_size", "Lepton_size"
+            "ngoodJets", "ngoodbJets", "ngoodMuons", "ngoodElectrons",
+            "Jet1_pt","Jet2_pt","Jet3_pt","Jet4_pt","Jet5_pt",
+            "Jet1_eta","Jet2_eta","Jet3_eta","Jet4_eta","Jet5_eta",
+            "Jet1_mass","Jet2_mass","Jet3_mass","Jet4_mass","Jet5_mass", 
+            "bJet1_pt","bJet2_pt", "bJet3_pt",
+            "bJet1_eta","bJet2_eta", "bJet3_eta",
+            "bJet1_mass","bJet2_mass", "bJet3_mass",
+            "Muon1_pt", "Muon1_eta", "Muon1_e"
             ]
-project_dir = "./samples/"
 
 
 df_sig_tt_list = []
 
-df_tthh   = uproot.open(project_dir+"tthh.root")["Delphes"].arrays(inputvars,library="pd")
-df_ttbb   = uproot.open(project_dir+"ttbb.root")["Delphes"].arrays(inputvars,library="pd")
-df_ttbbbb = uproot.open(project_dir+"ttbbbb.root")["Delphes"].arrays(inputvars,library="pd")
-df_ttbbcc = uproot.open(project_dir+"ttbbcc.root")["Delphes"].arrays(inputvars,library="pd")
+
+# Input #
+indir = "./samples2/"
+df_tthh   = uproot.open(indir+OS+"_tthh.root")["Delphes"].arrays(inputvars,library="pd")
+df_ttbb   = uproot.open(indir+OS+"_ttbb.root")["Delphes"].arrays(inputvars,library="pd")
+df_ttbbbb = uproot.open(indir+OS+"_ttbbbb.root")["Delphes"].arrays(inputvars,library="pd")
+df_ttbbcc = uproot.open(indir+OS+"_ttbbcc.root")["Delphes"].arrays(inputvars,library="pd")
+print(type(df_tthh))
+
+
+# Output #
+outdir = "./DNN_result/" + OS + "/"
+os.makedirs(outdir, exist_ok=True)
+
+
+########## Start ############
+print("Start multi Training")
 
 ntthh   = len(df_tthh)
 nttbb   = len(df_ttbb)
@@ -58,15 +78,15 @@ print(pd_data.head())
 print("Col names:",colnames)
 
 print("Plotting corr_matrix total")
-plot_corrMatrix(pd_data,train_outdir,"total")
+plot_corrMatrix(pd_data,outdir,"total")
 print("Plotting corr_matrix tthh")
-plot_corrMatrix(df_tthh,train_outdir,"tthh")
+plot_corrMatrix(df_tthh,outdir,"tthh")
 print("Plotting corr_matrix ttbb")
-plot_corrMatrix(df_ttbb,train_outdir,"ttbb")
+plot_corrMatrix(df_ttbb,outdir,"ttbb")
 print("Plotting corr_matrix ttbbbb")
-plot_corrMatrix(df_ttbbbb,train_outdir,"ttbbbb")
+plot_corrMatrix(df_ttbbbb,outdir,"ttbbbb")
 print("Plotting corr_matrix ttbbcc")
-plot_corrMatrix(df_ttbbcc,train_outdir,"ttbbcc")
+plot_corrMatrix(df_ttbbcc,outdir,"ttbbcc")
 
 pd_data = pd_data.sample(frac=1).reset_index(drop=True)
 
@@ -85,7 +105,7 @@ print(len(x_train),len(x_val),len(y_train),len(y_val))
 patience_epoch = 10
 # Early Stopping with Validation Loss for Best Model
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=patience_epoch)
-mc = ModelCheckpoint(train_outdir+'/best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
+mc = ModelCheckpoint(outdir+'/best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
 print("xtrain shape:",x_train.shape)
 
 
@@ -119,34 +139,37 @@ hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
 
 
 pred_train = model.predict_classes(x_train)
-y_train = y_train.T[0]
 print("pred_train", pred_train)
-print("orig train", y_train)
+print("orig train", y_train.T)
 #train_result = pd.DataFrame(np.array([y_train.T[0], pred_train.T[1]]).T, columns=["True", "Pred"])
 pred_val = model.predict_classes(x_val)
-y_val = y_val.T[0]
 print("pred_val", pred_val)
-print("orig train", y_val)
+print("orig train", y_val.T)
+print("conf matrix on train set ")
+print(confusion_matrix(y_train, pred_train))
+print("conf matrix on val set ")
+print(confusion_matrix(y_val, pred_val))
 
 plot_confusion_matrix(y_val, pred_val, classes=class_names,
-                    title='Confusion matrix, without normalization', savename=train_outdir+"/confusion_matrix_val.pdf")
+                    title='Confusion matrix, without normalization', savename=outdir+"/confusion_matrix_val.pdf")
 plot_confusion_matrix(y_val, pred_val, classes=class_names, normalize=True,
-                    title='Normalized confusion matrix', savename=train_outdir+"/norm_confusion_matrix_val.pdf")
+                    title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix_val.pdf")
 plot_confusion_matrix(y_train, pred_train, classes=class_names,
-                    title='Confusion matrix, without normalization', savename=train_outdir+"/confusion_matrix_train.pdf")
+                    title='Confusion matrix, without normalization', savename=outdir+"/confusion_matrix_train.pdf")
 plot_confusion_matrix(y_train, pred_train, classes=class_names, normalize=True,
-                    title='Normalized confusion matrix', savename=train_outdir+"/norm_confusion_matrix_train.pdf")
+                    title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix_train.pdf")
 
 pred_val = model.predict(x_val)
 pred_train = model.predict(x_train)
 
-print("pred_val", pred_val)
-print(" _T", pred_val.T)
-print(" _T", pred_val.T.shape)
-print("y_val", y_val)
-print(" _T", y_val.shape)
-
-for i in range(len(class_names)):
-    val_result = pd.DataFrame(np.array([y_val.T, pred_val.T[i]]).T, columns=["True", "Pred"])
-    train_result = pd.DataFrame(np.array([y_train.T, pred_train.T[i]]).T, columns=["True", "Pred"])
-    plot_output_dist(train_result, val_result, sig=class_names[i],savedir=train_outdir)
+exit()
+print(pred_val)
+print(pred_val.T)
+print(y_val)
+print(y_val.T)
+val_result = pd.DataFrame(np.array([y_val.T, pred_val.T[1]]).T, columns=["True", "Pred"])
+train_result = pd.DataFrame(np.array([y_train.T, pred_train.T[1]]).T, columns=["True", "Pred"])
+plot_output_dist(train_result, val_result, sig="tt",savedir=outdir)
+val_result = pd.DataFrame(np.array([y_val.T, pred_val.T[2]]).T, columns=["True", "Pred"])
+train_result = pd.DataFrame(np.array([y_train.T, pred_train.T[2]]).T, columns=["True", "Pred"])
+plot_output_dist(train_result, val_result, sig="st",savedir=outdir)
