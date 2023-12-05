@@ -197,8 +197,24 @@ plt.show()
 ###################################################
 #                PreProcessing_2                  #
 ###################################################
-x_total = np.array(df_total.filter(items = inputvars_2))
+# Case1 : One Hot Encoding for pred_bcat # 
+_x_total = df_total.filter(items = inputvars_2)
+_x_ohe = pd.get_dummies(_x_total['pred_bcat'], prefix='pred_bcat', drop_first=True)
+_x_total = _x_total.drop('pred_bcat', axis=1)
+_x_total = pd.concat([_x_total, _x_ohe], axis = 1)
+x_total = np.array(_x_total)
 y_total = np.array(df_total.filter(items = ["category"]))
+# Case1 : One Hot Encoding for pred_bcat # 
+
+'''
+# Case 2 : No OHE, No pred_bcat #
+_x_total = df_total.filter(items = inputvars_2)
+_x_total = _x_total.drop('pred_bcat', axis=1)
+x_total = np.array(_x_total)
+y_total = np.array(df_total.filter(items = ["category"]))
+# Case 2 : No OHE, No pred_bcat #
+'''
+
 print("Final x = ", x_total)
 print("Final y = ", y_total)
 
@@ -206,12 +222,6 @@ print("Final y = ", y_total)
 ntotal = len(y_total)
 train_len = int(0.7*ntotal)
 x_train, x_val, y_train, y_val = train_test_split(x_total, y_total, test_size=0.3)
-#x_train = np.array([data if data is not None else 0 for data in x_train])
-#x_val = np.array([data if data is not None else 0 for data in x_val])
-#y_train = np.array([data if data is not None else 0 for data in y_train])
-#y_val = np.array([data if data is not None else 0 for data in y_val])
-#x_train = np.nan_to_num(x_train, nan=0)
-#x_val = np.nan_to_num(x_val, nan=0)
 
     
 ###################################################
@@ -299,18 +309,18 @@ test_results = model.evaluate(x_val, y_val)
 test_loss = test_results[0]
 test_acc = test_results[1]
 print(f"Test accuracy: {test_acc * 100:.2f}%")
-
 ###################################################
 #                Feature Importance               #
 ###################################################
 print("#          FEATURE IMPORTANCE             #")
 model_dir = outdir + '/best_model.h5'
-plot_feature_importance(model_dir, x_val, inputvars_2, outdir)
+plot_feature_importance(model_dir, x_val, _x_total.columns, outdir)
+
 ###################################################
 #                     Time                        #
 ###################################################
 print("Number of full data: ", ntrain*5)
-colnames = df_total.columns; print("Columns :",colnames)
+colnames = _x_total.columns; print("Columns :",colnames)
 execution_time = end_time - start_time
 print(f"execution time: {execution_time} second")
 print("---Done---")
