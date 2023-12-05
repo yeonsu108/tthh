@@ -67,34 +67,50 @@ def plot_performance(hist, savedir="./"):
     plt.savefig(os.path.join(savedir+'/fig_score_loss.pdf'))
     plt.gcf().clear()
 
-def plot_output_dist(train, test,sig="tthh", savedir="./"):
+def plot_output_dist(train, test,sig="tthh", savedir="./",threshold=0.2):
     #sig can be "tt" or "st"
-    sig_class = {"tthh":0, "ttbb":1, "ttbbbb":2, "ttbbcc":3}
-    sigtrain = np.array(train[train["True"]==sig_class[sig]]["Pred"])
-    bkgtrain = np.array(train[train["True"]!=sig_class[sig]]["Pred"])
-    sigtest = np.array(test[test["True"]==sig_class[sig]]["Pred"])
-    bkgtest = np.array(test[test["True"]!=sig_class[sig]]["Pred"])
-    bins=40
-    scores = [sigtrain, sigtest, bkgtrain, bkgtest]
+    sig_class = {"tthh":0, "tthbb":1, "ttbb":2, "ttbbbb":3, "ttbbcc":4}
+    sigtrain = np.array(train[train["True"] ==sig_class[sig]]["Pred"]) # DataFrame, df[with column logic] 's [column]
+    bkgtrain = np.array(train[train["True"] !=sig_class[sig]]["Pred"]) # "True" -> y value in (train or val)
+    sigVal = np.array(test[test["True"] ==sig_class[sig]]["Pred"])
+    bkgVal = np.array(test[test["True"] !=sig_class[sig]]["Pred"])
+    ttbbVal = np.array(test[test["True"] ==sig_class["ttbb"]]["Pred"])
+    ttbbbbVal = np.array(test[test["True"] ==sig_class["ttbbbb"]]["Pred"])
+    ttbbccVal = np.array(test[test["True"] ==sig_class["ttbbcc"]]["Pred"])
+    tthbbVal = np.array(test[test["True"] ==sig_class["tthbb"]]["Pred"])
+
+    bins=50
+    scores = [sigtrain, sigVal, bkgtrain, bkgVal]
     #print (scores)
     low = min(np.min(d) for d in scores)
     high = max(np.max(d) for d in scores)
 
+    bkgtest_pass = bkgVal[bkgVal > threshold]
+    ttbbtest_pass = ttbbVal[ttbbVal > threshold]
+    ttbbbbtest_pass = ttbbbbVal[ttbbbbVal > threshold]
+    ttbbcctest_pass = ttbbccVal[ttbbccVal > threshold]
+    tthbbtest_pass = tthbbVal[tthbbVal > threshold]
+    sigtest_pass = sigVal[sigVal > threshold]
+    print("bkg:",len(bkgtest_pass))
+    print("ttbb:",len(ttbbtest_pass)/len(ttbbVal))
+    print("ttbbbb:",len(ttbbbbtest_pass)/len(ttbbbbVal))
+    print("ttbbcc:",len(ttbbcctest_pass)/len(ttbbccVal))
+    print("tthbb:",len(tthbbtest_pass)/len(tthbbVal))
+    print("sig:",len(sigtest_pass)/len(sigVal))
     # test is dotted
     plt.hist(sigtrain, color="b", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label=sig+" (train)")
     plt.hist(bkgtrain, color="r", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label="Others (train)")
 
-    hist, bins = np.histogram(sigtest, bins=bins, range=(low,high), density=True)
-    scale = len(sigtest) / sum(hist)
+    hist, bins = np.histogram(sigVal, bins=bins, range=(low,high), density=True)
+    scale = len(sigVal) / sum(hist)
     err = np.sqrt(hist * scale) / scale
     width = (bins[1] - bins[0])
     center = (bins[:-1] + bins[1:]) / 2
     plt.errorbar(center, hist, yerr=err, fmt='o', c='b', label=sig+' (test)')
-    hist, bins = np.histogram(bkgtest, bins=bins, range=(low,high), density=True)
-    scale = len(bkgtest) / sum(hist)
+    hist, bins = np.histogram(bkgVal, bins=bins, range=(low,high), density=True)
+    scale = len(bkgVal) / sum(hist)
     err = np.sqrt(hist * scale) / scale
     plt.errorbar(center, hist, yerr=err, fmt='o', c='r', label='Others (test)')
-
     plt.title("Output distribution")
     plt.ylabel("entry")
     plt.xlabel("probability")

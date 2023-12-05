@@ -20,9 +20,9 @@ R__LOAD_LIBRARY(libDelphes)
 void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
     gSystem->Load("libDelphes");
 
-//    auto infile = "/data1/users/itseyes/tthh/13.6TeV/"+channel+"/test/*.root";
-//    auto infile = "/data1/users/itseyes/tthh/13.6TeV/"+channel+"/Events/tag_1*.root";
-    auto infile = "/data1/users/itseyes/tthh/13.6TeV/"+channel+"/Events/*.root";
+//    auto infile = "/data1/users/itseyes/tthh/14TeV/"+channel+"/Events/test/*.root";
+//    auto infile = "/data1/users/itseyes/tthh/14TeV/"+channel+"/Events/tag_1*.root";
+    auto infile = "/data1/users/itseyes/tthh/14TeV/"+channel+"/Events/*.root";
     std::cout << infile << std::endl;
     std::cout << outdir << std::endl;
     auto treename = "Delphes";
@@ -138,7 +138,7 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("nMatchedbJet_FromTop2", "nMatchedbJet[3]")
                   .Define("nMatchedbJet_all", "nMatchedbJet[4]");
 
-    // 4 Vector of Gen //
+    // 4 Vector of Gen // ::idx_var gives -999 for idx = -1.  
     auto df2 = df1.Define("Genb1JetFromHiggs1_pt", ::idx_var, {"GenJet.PT", "Genb1JetFromHiggs1_idx"})
                   .Define("Genb2JetFromHiggs1_pt", ::idx_var, {"GenJet.PT", "Genb2JetFromHiggs1_idx"})
                   .Define("Genb1JetFromHiggs2_pt", ::idx_var, {"GenJet.PT", "Genb1JetFromHiggs2_idx"})
@@ -191,9 +191,9 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   
 
     // Reco //
-    auto df4 = df3.Define("goodJet", "Jet.PT>=30 && abs(Jet.Eta)<2.4")
-                  .Define("goodElectron", "Electron.PT>=20 && abs(Electron.Eta)<2.4")
-                  .Define("goodMuon", "Muon.PT>=20 && abs(Muon.Eta)<2.4")
+    auto df4 = df3.Define("goodJet", "Jet.PT>=25 && abs(Jet.Eta)<2.8")
+                  .Define("goodElectron", "Electron.PT>=15 && abs(Electron.Eta)<2.8")
+                  .Define("goodMuon", "Muon.PT>=15 && abs(Muon.Eta)<2.8")
 
                   .Define("Jet_pt", "Jet.PT[goodJet]")
                   .Define("Jet_eta", "Jet.Eta[goodJet]")
@@ -230,9 +230,18 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("Lep2_eta", "Lep_4vec[5]")
                   .Define("Lep2_phi", "Lep_4vec[6]")
                   .Define("Lep2_t", "Lep_4vec[7]")
-                  // You Must Use [bi] Before Filter // 
 
+                  .Define("MET_E", "MissingET.MET")
+                  .Define("MET_Eta", "MissingET.Eta")
+                  .Define("MET_Phi", "MissingET.Phi")
+                  // You Must Use [bi_Tag] Before Filter // 
+
+                  .Filter("Lep_size >= 2")
                   .Filter("Jet_size >= 5")
+                  .Filter("bJet_size >= 5")
+                  .Define("bJet_pt_scheme", ::pt_scheme, {"b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt", "bJetFromTop1_pt", "bJetFromTop2_pt"})
+                  .Define("isMatchable", ::Matchable, {"bJet_pt", "b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt", "bJetFromTop1_pt", "bJetFromTop2_pt"})
+
                   .Define("Jet1_pt", "Jet_pt[0]").Define("Jet1_eta", "Jet_eta[0]").Define("Jet1_phi", "Jet_phi[0]")
                   .Define("Jet1_mass", "bJet_mass[0]")
                   .Define("Jet2_pt", "Jet_pt[1]").Define("Jet2_eta", "Jet_eta[1]").Define("Jet2_phi", "Jet_phi[1]")
@@ -243,8 +252,6 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("Jet4_mass", "Jet_mass[3]")
                   .Define("Jet5_pt", "Jet_pt[4]").Define("Jet5_eta", "Jet_eta[4]").Define("Jet5_phi", "Jet_phi[4]")
                   .Define("Jet5_mass", "Jet_mass[4]")
-
-                  .Filter("bJet_size >= 4")
                   .Define("bJet1_pt", "bJet_pt[0]").Define("bJet1_eta", "bJet_eta[0]").Define("bJet1_phi", "bJet_phi[0]")
                   .Define("bJet1_mass", "bJet_mass[0]")
                   .Define("bJet2_pt", "bJet_pt[1]").Define("bJet2_eta", "bJet_eta[1]").Define("bJet2_phi", "bJet_phi[1]")
@@ -253,6 +260,8 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("bJet3_mass", "bJet_mass[2]")
                   .Define("bJet4_pt", "bJet_pt[3]").Define("bJet4_eta", "bJet_eta[3]").Define("bJet4_phi", "bJet_phi[3]")
                   .Define("bJet4_mass", "bJet_mass[3]")
+                  .Define("bJet5_pt", "bJet_pt[4]").Define("bJet5_eta", "bJet_eta[4]").Define("bJet5_phi", "bJet_phi[4]")
+                  .Define("bJet5_mass", "bJet_mass[4]")
 
                   .Define("j1j2_dr", ::dR2, {"Jet1_pt", "Jet1_eta", "Jet1_phi", "Jet1_mass", "Jet2_pt", "Jet2_eta", "Jet2_phi", "Jet2_mass"})
                   .Define("j1j3_dr", ::dR2, {"Jet1_pt", "Jet1_eta", "Jet1_phi", "Jet1_mass", "Jet3_pt", "Jet3_eta", "Jet3_phi", "Jet3_mass"})
@@ -279,10 +288,14 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("b1b2_dr", ::dR2, {"bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass", "bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass"})
                   .Define("b1b3_dr", ::dR2, {"bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass", "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass"})
                   .Define("b1b4_dr", ::dR2, {"bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass", "bJet4_pt", "bJet4_eta", "bJet4_phi", "bJet4_mass"})
+                  .Define("b1b5_dr", ::dR2, {"bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass", "bJet5_pt", "bJet5_eta", "bJet5_phi", "bJet5_mass"})
                   .Define("b2b3_dr", ::dR2, {"bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass", "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass"})
                   .Define("b2b4_dr", ::dR2, {"bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass", "bJet4_pt", "bJet4_eta", "bJet4_phi", "bJet4_mass"})
+                  .Define("b2b5_dr", ::dR2, {"bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass", "bJet5_pt", "bJet5_eta", "bJet5_phi", "bJet5_mass"})
                   .Define("b3b4_dr", ::dR2, {"bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass", "bJet4_pt", "bJet4_eta", "bJet4_phi", "bJet4_mass"})
-                  .Define("bb_dr", ::ConcatFloat_withoutSort_6, {"b1b2_dr", "b1b3_dr", "b1b4_dr", "b2b3_dr", "b2b4_dr", "b3b4_dr"})
+                  .Define("b3b5_dr", ::dR2, {"bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass", "bJet5_pt", "bJet5_eta", "bJet5_phi", "bJet5_mass"})
+                  .Define("b4b5_dr", ::dR2, {"bJet4_pt", "bJet4_eta", "bJet4_phi", "bJet4_mass", "bJet5_pt", "bJet5_eta", "bJet5_phi", "bJet5_mass"})
+                  .Define("bb_dr", ::ConcatFloat_withoutSort_10, {"b1b2_dr", "b1b3_dr", "b1b4_dr", "b1b5_dr", "b2b3_dr", "b2b4_dr", "b2b5_dr", "b3b4_dr", "b3b5_dr", "b4b5_dr"})
 
                   .Define("b_Vars", ::Vars, {"bb_dr", "bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass", "bJet_E"})
                   .Define("bb_avg_dr", "b_Vars[0]")
@@ -301,24 +314,31 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("b2", "bJetFrom[1]")
                   .Define("b3", "bJetFrom[2]")
                   .Define("b4", "bJetFrom[3]")
-                  .Define("nMatched_bFromTop", "bJetFrom[4]")
-                  .Define("nMatched_bFromHiggs", "bJetFrom[5]")
-                  .Define("nMatched_bJet", "bJetFrom[6]")
+                  .Define("b5", "bJetFrom[4]")
+                  .Define("nMatched_bFromTop", "bJetFrom[5]")
+                  .Define("nMatched_bFromHiggs", "bJetFrom[6]")
+                  .Define("nMatched_bJet", "bJetFrom[7]")
 
                   // Answer Categorizations for DNN // 
-                  .Define("bCat_top_1", ::bCat_top_1, {"b1", "b2", "b3", "b4"})
-                  .Define("bCat_top_2", ::bCat_top_2, {"b1", "b2", "b3", "b4"})
-                  .Define("bCat_higgs_1", ::bCat_higgs_1, {"b1", "b2", "b3", "b4"})
-                  .Define("bCat_higgs_2", ::bCat_higgs_2, {"b1", "b2", "b3", "b4"});
-//                  .Define("bCat_3higgs", ::bCat_3higgs, {"b1", "b2", "b3", "b4"});
+                  .Define("bCat_higgs5_2", ::bCat_higgs5_2, {"b1", "b2", "b3", "b4", "b5"})
+                  .Define("bCat_higgs5_3", ::bCat_higgs5_3, {"b1", "b2", "b3", "b4", "b5"})
+                  .Define("bCat_higgs5_2Mat", ::bCat_higgs5_2Mat, {"b1", "b2", "b3", "b4", "b5"})
+                  .Define("bCat_top_1", ::bCat_top_1, {"b1", "b2", "b3", "b4", "b5"});
                   
 
     // Reconstruction of Higgs //
-    auto df5 = df4.Define("RecoHiggs", ::RecoHiggs, {"bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass"})
+    auto df5 = df4.Define("RecoHiggs", ::RecoHiggs, {"bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass", "b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt"})
                   .Define("close_Higgs_pt", "RecoHiggs[0]")
                   .Define("close_Higgs_eta", "RecoHiggs[1]")
                   .Define("close_Higgs_phi", "RecoHiggs[2]")
-                  .Define("close_Higgs_mass", "RecoHiggs[3]");
+                  .Define("close_Higgs_mass", "RecoHiggs[3]")
+                  .Define("Matched_idx1", "RecoHiggs[4]")
+                  .Define("Matched_idx2", "RecoHiggs[5]")
+                  .Define("Correct_Chi", "RecoHiggs[6]")
+                  .Define("Chi_min", "RecoHiggs[7]");
+
+
+    auto df6 = df5.Filter("isMatchable > 0"); 
 
     std::initializer_list<std::string> variables = {
     "ParticlePID", "ParticlePT", "D1", "D2", "JetBTag", 
@@ -343,13 +363,13 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                      
     "GenbJet_pt_scheme",
     "b1", "b2", "b3", "b4", "nMatched_bFromTop", "nMatched_bFromHiggs", "nMatched_bJet",
-    "bCat_top_1", "bCat_top_2", "bCat_higgs_1", "bCat_higgs_2",
+
+    "bCat_higgs5_2", "bCat_higgs5_3", "bCat_higgs5_2Mat", "bCat_top_1",
 
     //----------------Reco---------------------//
 
     "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "Jet_size",
      "bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass", "bJet_size",
-
      "Jet1_pt", "Jet1_eta", "Jet1_phi", "Jet1_mass",
      "Jet2_pt", "Jet2_eta", "Jet2_phi", "Jet2_mass",
      "Jet3_pt", "Jet3_eta", "Jet3_phi", "Jet3_mass",
@@ -362,22 +382,28 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
      "bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass",
      "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass",
      "bJet4_pt", "bJet4_eta", "bJet4_phi", "bJet4_mass",
-     "b1b2_dr", "b1b3_dr", "b1b4_dr", "b2b3_dr", "b2b4_dr", "b3b4_dr",
-
+     "bJet5_pt", "bJet5_eta", "bJet5_phi", "bJet5_mass",
+     "b1b2_dr", "b1b3_dr", "b1b4_dr", "b1b5_dr", "b2b3_dr", "b2b4_dr", "b2b5_dr", "b3b4_dr", "b3b5_dr", "b4b5_dr",
+     
      "Muon_pt", "Muon_eta", "Muon_phi", "Muon_t", "nMuon", "Lep_size",
      "Electron_pt", "Electron_eta", "Electron_phi", "Electron_t", "nElectron",
      "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
      "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
 
+     "MET_E", "MET_Eta", "MET_Phi",
+
     //----------------New-----------------------//
      "bb_dr", "b_Vars", "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
     "jj_dr", "j_Vars", "jj_avg_dr", "jj_max_dr", "jj_min_dr", "j_ht", "jj_dEta_WhenMaxdR", "j_cent", "jj_max_deta", "jj_max_mass", "jj_twist", 
-    "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
-    
+    "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass",
+
+     "isMatchable", "Matched_idx1", "Matched_idx2", "Correct_Chi", "Chi_min",
+//    "Lep_size", "Jet_size", "bJet_size",
     };
 
     // MODIFY!!
-    df5.Snapshot(treename, outdir+ "Full1106_" + channel + ".root", variables); 
+    df5.Snapshot(treename, outdir+ "FULL_1204_14TeV_" + channel + ".root", variables); 
+    df6.Snapshot(treename, outdir+ "FULL_1204_14TeV_Matchable_" + channel + ".root", variables); 
     std::cout << "done" << std::endl; 
 
     //df.Snapshot<TClonesArray, TClonesArray, TClonesArray, TClonesArray>("outputTree", "out.root", variables, ROOT::RDF::RSnapshotOptions("RECreate", ROOT::kZLIB, 1, 0, 99, false));
