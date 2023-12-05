@@ -8,6 +8,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import uproot
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import tensorflow as tf
 import pickle
 from keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -16,7 +17,6 @@ from utils.plots import *
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 
-start_time = time.time()
 ###################################################
 #                     I/O                         #
 ###################################################
@@ -39,17 +39,6 @@ inputvars = [
      "b2b3_dr", "b2b4_dr", "b2b5_dr", 
      "b3b4_dr", "b3b5_dr",
      "b4b5_dr",
-
-     # Lepton
-     "Lep_size",
-     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
-     "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
-     "MET_E", # why decrease..
-
-
-    # Defined Kinematic vars
-     "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
-     "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
 
             ]
 
@@ -85,17 +74,6 @@ nCat10 = len(pd_cat10)
 nCat11 = len(pd_cat11)
 ntrain = min(nCat1, nCat2, nCat3, nCat4, nCat5, nCat6, nCat7, nCat8, nCat9, nCat10)#, nCat11)
 print("ntrain = ", ntrain)
-print(nCat1)
-print(nCat2)
-print(nCat3)
-print(nCat4)
-print(nCat5)
-print(nCat6)
-print(nCat7)
-print(nCat8)
-print(nCat9)
-print(nCat10)
-print(nCat11)
 
 pd_cat1 = pd_cat1.sample(n=ntrain).reset_index(drop=True)
 pd_cat2 = pd_cat2.sample(n=ntrain).reset_index(drop=True)
@@ -123,7 +101,7 @@ print("x_train: ",len(x_train),"x_val: ", len(x_val),"y_train: ", len(y_train),"
 ###################################################
 #                      Model                      #
 ###################################################
-epochs = 1000; patience_epoch = 10; batch_size = 256; print("batch size :", batch_size)
+epochs = 1000; patience_epoch = 3; batch_size = 512; print("batch size :", batch_size)
 activation_function='relu'
 weight_initializer = 'random_normal'
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=patience_epoch)
@@ -141,13 +119,16 @@ model.add(tf.keras.layers.Dense(10, activation=activation_function, kernel_regul
 print("class_names : ", len(class_names))
 model.add(tf.keras.layers.Dense(len(class_names), activation="softmax"))
 ###################################################
+start_time = time.time()
 
-model.compile(optimizer=tf.keras.optimizers.Adam(clipvalue=0.5), loss="sparse_categorical_crossentropy", metrics = ["accuracy"])
+model.compile(optimizer=tf.keras.optimizers.Adam(clipvalue=0.5), 
+                   loss="sparse_categorical_crossentropy", 
+                   metrics = ["accuracy", "sparse_categorical_accuracy"])
 model.summary()
 
 hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
                                 validation_data=(x_val,y_val), callbacks=[es, mc])
-
+end_time = time.time()
 ###################################################
 #                  Prediction                     #
 ###################################################
@@ -159,7 +140,7 @@ print("Prediction for validation set: ", pred_val)
 print("Answer for train set:         ", y_val.T)
 
 ###################################################
-#                Confusion Matrix                 #
+#         Confusion Matrix, Acc Curve             #
 ###################################################
 print("#           CONFUSION MATRIX             #")
 plot_confusion_matrix(y_val, pred_val, classes=class_names,
@@ -171,86 +152,32 @@ plot_confusion_matrix(y_train, pred_train, classes=class_names,
 plot_confusion_matrix(y_train, pred_train, classes=class_names, normalize=True,
                     title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix_train.pdf")
 
+plot_performance(hist=hist, savedir=outdir)
+
 ###################################################
 #                    Accuracy                     #
 ###################################################
 print("#               ACCURACY                  #")
-train_loss, train_acc = model.evaluate(x_train, y_train)
+train_results = model.evaluate(x_train, y_train) # Cause you set two : "accuracy", "sparse_categorical_accuracy"
+train_loss = train_results[0]
+train_acc = train_results[1]
 print(f"Train accuracy: {train_acc * 100:.2f}%")
-test_loss, test_acc = model.evaluate(x_val, y_val)
+test_results = model.evaluate(x_val, y_val)
+test_loss = test_results[0]
+test_acc = test_results[1]
 print(f"Test accuracy: {test_acc * 100:.2f}%")
-
-end_time = time.time()
-execution_time = end_time - start_time
-print(f"execution time: {execution_time} second")
 
 ###################################################
 #              Feature Importance                 #
 ###################################################
-'''
 print("#          FEATURE IMPORTANCE             #")
 model_dir = outdir + '/best_model.h5'
-model = tf.keras.models.load_model(model_dir)
-model.summary()
-
-input_data = tf.convert_to_tensor(x_val, dtype=tf.float32)
-print(input_data)
-name_inputvar = inputvars
-n_evts = len(x_val)
-n_var = len(name_inputvar)
-mean_grads = n_var*[0.0]
-all_grads = []
-#mean_jacobian = np.zeros(len(name_inputvar))
-#jacobian_matrix = np.zeros((len(name_inputvar),len(name_inputvar)))
-for i, event in enumerate(x_val):
-    print(i,"/",n_evts)
-    with tf.GradientTape() as tape:
-        inputs = tf.Variable([event])
-        tape.watch(inputs)
-        prediction = model(inputs)[:, 1]
-    first_order_gradients = tape.gradient(prediction, inputs)
-    gradiants = tf.abs(first_order_gradients)
-    numpy_array = gradiants.numpy()[0]
-    all_grads.append(numpy_array)
-    #print(i,numpy_array , len(numpy_array))
-    for n in range(len(mean_grads)):
-        mean_grads[n] += abs(numpy_array[n])/n_evts
-
-print(mean_grads) # This is just final iteration (final event), not important yet.
-df = pd.DataFrame(all_grads)
-print(df)
-df.to_csv('data.csv', index=False)
-
-gradiants = tf.abs(first_order_gradients)
-numpy_array = gradiants.numpy()
-df = pd.DataFrame(numpy_array)
-print(df)
-df.to_csv(outdir+'/data.csv', index=False)
-feature_importance_first_order  = tf.reduce_mean(tf.abs(first_order_gradients), axis=0)
-feature_importance_dict = dict(zip(name_inputvar, feature_importance_first_order.numpy())) # Mapping
-#feature_importance_Secondorder  = tf.reduce_mean(tf.abs(second_order_gradients), axis=0)
-feature_importance_series = pd.Series(feature_importance_dict)
-
-print("Feature importance series?")
-print(feature_importance_series)
-max_importance_score = feature_importance_series.max()
-print("Max: ", max_importance_score)
-for i, importance_score in enumerate(feature_importance_first_order):
-    print(f"Feature {i+1} , {name_inputvar[i]} Importance: {max_importance_score-importance_score:.5f}")
-
-print(feature_importance_series.index, feature_importance_series.values)
-
-# Order the Feature Importance
-sorted_indices = np.argsort(feature_importance_series.values)[::-1]
-sorted_importance = feature_importance_series.values[sorted_indices]
-sorted_feature_names = feature_importance_series.index[sorted_indices]
-
-plt.figure(figsize=(10, 10))
-plt.barh(sorted_feature_names, max_importance_score - sorted_importance)
-plt.xlabel('Feature Importance')
-plt.ylabel('Feature Names')
-plt.savefig(outdir+'/first_order_gradient_importance.png')
-plt.title('First-Order Gradient Feature Importance')
-plt.show()
-'''
+plot_feature_importance(model_dir, x_val, inputvars, outdir)
+###################################################
+#                     Time                        #
+###################################################
+execution_time = end_time - start_time
+print(f"execution time: {execution_time} second")
 print("---Done---")
+
+

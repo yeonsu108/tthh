@@ -150,3 +150,65 @@ def plot_roc_curve(fpr,tpr,auc,savedir="./"):
     plt.tight_layout()
     plt.savefig(os.path.join(savedir+'/fig_roc.pdf'))
     plt.gcf().clear()
+
+def plot_feature_importance(model_dir, x_val, inputvars, outdir="./"):
+    model = tf.keras.models.load_model(model_dir)
+    model.summary()
+    input_data = tf.convert_to_tensor(x_val, dtype=tf.float32)
+    print(input_data)
+    name_inputvar = inputvars
+    n_evts = len(x_val)
+    n_var = len(name_inputvar)
+    mean_grads = n_var*[0.0]
+    all_grads = []
+    #mean_jacobian = np.zeros(len(name_inputvar))
+    #jacobian_matrix = np.zeros((len(name_inputvar),len(name_inputvar)))
+    for i, event in enumerate(x_val):
+        print(i,"/",n_evts)
+        with tf.GradientTape() as tape:
+            inputs = tf.Variable([event])
+            tape.watch(inputs)
+            prediction = model(inputs)[:, 1]
+        first_order_gradients = tape.gradient(prediction, inputs)
+        gradiants = tf.abs(first_order_gradients)
+        numpy_array = gradiants.numpy()[0]
+        all_grads.append(numpy_array)
+        #print(i,numpy_array , len(numpy_array))
+        for n in range(len(mean_grads)):
+            mean_grads[n] += abs(numpy_array[n])/n_evts
+    
+    print(mean_grads) # This is just final iteration (final event), not important yet.
+    df = pd.DataFrame(all_grads)
+    print(df)
+    df.to_csv('data.csv', index=False)
+    
+    gradiants = tf.abs(first_order_gradients)
+    numpy_array = gradiants.numpy()
+    df = pd.DataFrame(numpy_array)
+    print(df)
+    df.to_csv(outdir+'/data.csv', index=False)
+    feature_importance_first_order  = tf.reduce_mean(tf.abs(first_order_gradients), axis=0)
+    feature_importance_dict = dict(zip(name_inputvar, feature_importance_first_order.numpy())) # Mapping
+    #feature_importance_Secondorder  = tf.reduce_mean(tf.abs(second_order_gradients), axis=0)
+    feature_importance_series = pd.Series(feature_importance_dict)
+    
+    print("Feature importance series?")
+    print(feature_importance_series)
+    max_importance_score = feature_importance_series.max()
+    print("Max: ", max_importance_score)
+    for i, importance_score in enumerate(feature_importance_first_order):
+        print(f"Feature {i+1} , {name_inputvar[i]} Importance: {max_importance_score-importance_score:.5f}")
+    
+    print(feature_importance_series.index, feature_importance_series.values)
+    # Order the Feature Importance
+    sorted_indices = np.argsort(feature_importance_series.values)[::-1]
+    sorted_importance = feature_importance_series.values[sorted_indices]
+    sorted_feature_names = feature_importance_series.index[sorted_indices]
+    
+    plt.figure(figsize=(10, 10))
+    plt.barh(sorted_feature_names, max_importance_score - sorted_importance)
+    plt.xlabel('Feature Importance')
+    plt.ylabel('Feature Names')
+    plt.savefig(outdir+'/first_order_gradient_importance.png')
+    plt.title('First-Order Gradient Feature Importance')
+    plt.show()

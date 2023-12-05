@@ -166,7 +166,7 @@ plot_performance(hist=hist, savedir=outdir)
 #                    Accuracy                     #
 ###################################################
 print("#               ACCURACY                  #")
-train_results = model.evaluate(x_train, y_train)
+train_results = model.evaluate(x_train, y_train) # Cause you set two : "accuracy", "sparse_categorical_accuracy"
 train_loss = train_results[0]
 train_acc = train_results[1]
 print(f"Train accuracy: {train_acc * 100:.2f}%")
@@ -175,6 +175,14 @@ test_loss = test_results[0]
 test_acc = test_results[1]
 print(f"Test accuracy: {test_acc * 100:.2f}%")
 
+'''
+###################################################
+#              Feature Importance                 #
+###################################################
+print("#          FEATURE IMPORTANCE             #")
+model_dir = outdir + '/best_model.h5'
+plot_feature_importance(model_dir, x_val.reshape(-1), inputvars, outdir)
+'''
 ###################################################
 #                     Time                        #
 ###################################################

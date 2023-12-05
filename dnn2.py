@@ -27,7 +27,7 @@ from utils.var_functions import *
 ###################################################
 #                     I/O                         #
 ###################################################
-indir = "./samples2/"; PRE = "FFULL_1130_14TeV"
+indir = "./samples2/"; PRE = "FULL_1204_14TeV"
 outdir = "./DNN_result/" + PRE + "/LetsFind_tthh/bCat_higgs5_2Mat/"    # MODIFY  #
 os.makedirs(outdir, exist_ok=True)
 process_names = ["tthh", "tthbb", "ttbb", "ttbbbb", "ttbbcc"]
@@ -46,6 +46,11 @@ dnn1vars = [
      "b3b4_dr", "b3b5_dr",
      "b4b5_dr",
 
+            ]
+
+
+addvars = [
+
      # Lepton
      "Lep_size",
      "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
@@ -56,10 +61,7 @@ dnn1vars = [
     # Defined Kinematic vars
      "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
      "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
-            ]
 
-
-addvars = [
            ]
  
 inputvars = dnn1vars + addvars
@@ -98,6 +100,7 @@ df_ttbbcc = df_ttbbcc.sample(n=ntrain).reset_index(drop=True)
 # X-Y Partition
 df_total = pd.concat([df_tthh, df_tthbb, df_ttbb, df_ttbbbb, df_ttbbcc])
 df_total = df_total.sample(frac=1).reset_index(drop=True)
+x_bCat  = np.array(df_total.filter(items = dnn1vars))
 x_total = np.array(df_total.filter(items = inputvars))
 y_total = np.array(df_total.filter(items = ["category"]))
 
@@ -108,7 +111,7 @@ model_dir = "DNN_result/B_1204_14TeV/bJetCassification/bCat_higgs5_2Mat/best_mod
 bft_model = tf.keras.models.load_model(model_dir)
 bft_model.summary()
 print("x_total: ", x_total); print("x_total_shape: ", x_total.shape)
-pred_bcat = bft_model.predict(x_total); print("pred_bcat : ", pred_bcat)
+pred_bcat = bft_model.predict(x_bCat); print("pred_bcat : ", pred_bcat)
 pred_bcat = np.argmax(pred_bcat, axis=1) # (arg 0~10 that with the biggest prob)
 
 ### NEW VARIABLES ###
@@ -244,9 +247,11 @@ model.add(tf.keras.layers.Dense(len(process_names), activation="softmax"))
 ###################################################
 
 ###############    Compile Model    ###############    
-model.compile(optimizer=tf.keras.optimizers.Adam(clipvalue=0.5), loss="sparse_categorical_crossentropy", metrics = ["accuracy"])
+model.compile(optimizer=tf.keras.optimizers.Adam(clipvalue=0.5), 
+              loss="sparse_categorical_crossentropy", 
+              metrics = ["accuracy", "sparse_categorical_accuracy"])
 model.summary()
-###################################################
+
 start_time = time.time()
 
 hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
@@ -280,85 +285,30 @@ plot_confusion_matrix(y_train, pred_train_arg, classes=process_names, normalize=
                     title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix_train.pdf")
 
 plot_output_dist(train_result, val_result,sig="tthh", savedir=outdir)
+plot_performance(hist=hist, savedir=outdir)
 
 ###################################################
 #                    Accuracy                     #
 ###################################################
 print("#               ACCURACY                  #")
-# Evaluate Model
-train_loss, train_acc = model.evaluate(x_train, y_train)
+train_results = model.evaluate(x_train, y_train) # Cause you set two : "accuracy", "sparse_categorical_accuracy"
+train_loss = train_results[0]
+train_acc = train_results[1]
 print(f"Train accuracy: {train_acc * 100:.2f}%")
-test_loss, test_acc = model.evaluate(x_val, y_val)
+test_results = model.evaluate(x_val, y_val)
+test_loss = test_results[0]
+test_acc = test_results[1]
 print(f"Test accuracy: {test_acc * 100:.2f}%")
 
 ###################################################
 #                Feature Importance               #
 ###################################################
-'''
 print("#          FEATURE IMPORTANCE             #")
-model_2 = tf.keras.models.load_model(outdir+"/best_model.h5")
-model_2.summary()
-
-print("feature importance starts")
-input_data = tf.convert_to_tensor(x_val, dtype=tf.float32)
-print(input_data)
-name_inputvar = inputvars_2
-n_evts = len(x_val)
-n_var = len(name_inputvar)
-mean_grads = n_var*[0.0]
-all_grads = []
-#mean_jacobian = np.zeros(len(name_inputvar))
-#jacobian_matrix = np.zeros((len(name_inputvar),len(name_inputvar)))
-for i, event in enumerate(x_val):
-#    print(i,"/",n_evts)
-    with tf.GradientTape() as tape:
-        inputs = tf.Variable([event])
-        tape.watch(inputs)
-        prediction = model(inputs)[:, 1]
-    first_order_gradients = tape.gradient(prediction, inputs)
-    gradiants = tf.abs(first_order_gradients)
-    numpy_array = gradiants.numpy()[0]
-    all_grads.append(numpy_array)
-    #print(i,numpy_array , len(numpy_array))
-    for n in range(len(mean_grads)):
-        mean_grads[n] += abs(numpy_array[n])/n_evts
-
-print(mean_grads) # This is just final iteration (final event), not important yet.
-df = pd.DataFrame(all_grads)
-print(df)
-df.to_csv('data.csv', index=False)
-
-gradiants = tf.abs(first_order_gradients)
-numpy_array = gradiants.numpy()
-df = pd.DataFrame(numpy_array)
-print(df)
-df.to_csv(outdir+'/data.csv', index=False)
-feature_importance_first_order  = tf.reduce_mean(tf.abs(first_order_gradients), axis=0)
-feature_importance_dict = dict(zip(name_inputvar, feature_importance_first_order.numpy())) # Mapping
-#feature_importance_Secondorder  = tf.reduce_mean(tf.abs(second_order_gradients), axis=0)
-feature_importance_series = pd.Series(feature_importance_dict)
-
-print("Feature importance series?")
-print(feature_importance_series)
-max_importance_score = feature_importance_series.max()
-for i, importance_score in enumerate(feature_importance_first_order):
-    print(f"Feature {i+1} , {name_inputvar[i]} Importance: {max_importance_score-importance_score:.5f}")
-
-print(feature_importance_series.index, feature_importance_series.values)
-
-# Order the Feature Importance
-sorted_indices = np.argsort(feature_importance_series.values)[::-1]
-sorted_importance = feature_importance_series.values[sorted_indices]
-sorted_feature_names = feature_importance_series.index[sorted_indices]
-
-plt.figure(figsize=(10, 10))
-plt.barh(sorted_feature_names, max_importance_score - sorted_importance)
-plt.xlabel('Feature Importance')
-plt.ylabel('Feature Names')
-plt.savefig(outdir+'/first_order_gradient_importance.png')
-plt.title('First-Order Gradient Feature Importance')
-plt.show()
-'''    
+model_dir = outdir + '/best_model.h5'
+plot_feature_importance(model_dir, x_val, inputvars_2, outdir)
+###################################################
+#                     Time                        #
+###################################################
 print("Number of full data: ", ntrain*5)
 colnames = df_total.columns; print("Columns :",colnames)
 execution_time = end_time - start_time
