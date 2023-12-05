@@ -46,6 +46,11 @@ dnn1vars = [
      "b3b4_dr", "b3b5_dr",
      "b4b5_dr",
 
+            ]
+
+
+addvars = [
+    "close_Higgs_mass",
      # Lepton
 #     "Lep_size",
 #     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
@@ -53,14 +58,9 @@ dnn1vars = [
 #     "MET_E", # why decrease..
 
 
-    # Defined Kinematic vars
+   # Defined Kinematic vars
 #     "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
 #     "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
-            ]
-
-
-addvars = [
-    "close_Higgs_mass",
            ]
  
 inputvars = dnn1vars + addvars
