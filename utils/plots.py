@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
+from tqdm import tqdm
 
 def plot_confusion_matrix(y_true, y_pred, classes, normalize=False,  title=None, cmap=plt.cm.Blues, savename="./cm.pdf"):
     # This function prints and plots the confusion matrix. Normalization can be applied by setting `normalize=True`.
@@ -163,8 +164,7 @@ def plot_feature_importance(model_dir, x_val, inputvars, outdir="./"):
     all_grads = []
     #mean_jacobian = np.zeros(len(name_inputvar))
     #jacobian_matrix = np.zeros((len(name_inputvar),len(name_inputvar)))
-    for i, event in enumerate(x_val):
-        print(i,"/",n_evts)
+    for i, event in tqdm(enumerate(x_val), total=n_evts, desc="Calculating Gradients"):
         with tf.GradientTape() as tape:
             inputs = tf.Variable([event])
             tape.watch(inputs)
