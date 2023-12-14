@@ -76,7 +76,6 @@ ints FinalGenPart_idx(ints pid, ints m1, ints m2, ints d1, ints d2, ints top, in
     ints out;
     int top_idx=-1; int bFromTop=-1; int lepFromTop=-1;
     int b_idx, w_idx;
-    //std::cout << "FinalPart Functions " << std::endl;
 
     for (int i=0; i<int(pid.size()); i++){
         if (top[i] != 0){
@@ -93,7 +92,6 @@ ints FinalGenPart_idx(ints pid, ints m1, ints m2, ints d1, ints d2, ints top, in
                 }
                 else {
                     lepFromTop = findLastIdx(d2[w_idx], pid, d1, d2);
-                    //std::cout << " lep: " << d2[w_idx] << " pid: " << pid[d2[w_idx]] << std::endl;
                 }
             out.push_back(top_idx);        // 0, 3
             out.push_back(bFromTop);   // 1, 4 
@@ -117,7 +115,6 @@ ints FinalParticle_idx(ints pid, floats pt, ints m1, ints m2, ints d1, ints d2, 
         }
         if (higgs[i] ==1){
             h_idx.push_back(i);
-            //std::cout << i << endl;
             bfh.push_back(d1[i]); bfh.push_back(d2[i]);
             bfh_pt.push_back(pt[d1[i]]); bfh_pt.push_back(pt[d2[i]]);
         } 
@@ -127,7 +124,6 @@ ints FinalParticle_idx(ints pid, floats pt, ints m1, ints m2, ints d1, ints d2, 
     top1_idx = top_idx[0]; top2_idx = top_idx[1]; bft1 = bft_idx[0]; bft2 = bft_idx[1];
     //Higgs
     int max_idx = std::max_element(bfh_pt.begin(), bfh_pt.end()) - bfh_pt.begin();
-//    std::cout << "bpt: " << bfh_pt[0] << " " << bfh_pt[1] << " " << bfh_pt[2] << " " << bfh_pt[3] << endl; 
     if (max_idx == 0){
         if (bfh_pt[2] >= bfh_pt[3]){
             h1 = h_idx[0]; h2 = h_idx[1]; b1fh1 = bfh[0]; b2fh1 = bfh[1]; b1fh2 = bfh[2]; b2fh2 = bfh[3];}
@@ -145,7 +141,6 @@ ints FinalParticle_idx(ints pid, floats pt, ints m1, ints m2, ints d1, ints d2, 
             h1 = h_idx[1]; h2 = h_idx[0]; b1fh1 = bfh[3]; b2fh1 = bfh[2]; b1fh2 = bfh[0]; b2fh2 = bfh[1];}
         else {h1 = h_idx[1]; h2 = h_idx[0]; b1fh1 = bfh[2]; b2fh1 = bfh[3]; b1fh2 = bfh[1]; b2fh2 = bfh[0];}}        
     else {h1 = -1; h2 = -1; b1fh1 = -1; b2fh1 = -1; b1fh2 = -1; b2fh2 = -1; std::cout << "Noooo!" << endl;}
-    //std::cout << h1 << " " << h2 << " " << b1fh1 << endl << endl;
     out.push_back(top1_idx); //0
     out.push_back(findLastIdx(bft1, pid, d1, d2));
     out.push_back(top2_idx); //2
@@ -174,7 +169,6 @@ ints FirstParticle_idx(ints pid, floats pt, ints m1, ints m2, ints d1, ints d2, 
         }
         if (higgs[i] ==1){
             h_idx.push_back(i);
-            //std::cout << i << endl;
             bfh.push_back(d1[i]); bfh.push_back(d2[i]);
             bfh_pt.push_back(pt[d1[i]]); bfh_pt.push_back(pt[d2[i]]);
         } 
@@ -184,7 +178,6 @@ ints FirstParticle_idx(ints pid, floats pt, ints m1, ints m2, ints d1, ints d2, 
     top1_idx = top_idx[0]; top2_idx = top_idx[1]; bft1 = bft_idx[0]; bft2 = bft_idx[1];
     //Higgs
     int max_idx = std::max_element(bfh_pt.begin(), bfh_pt.end()) - bfh_pt.begin();
-//    std::cout << "bpt: " << bfh_pt[0] << " " << bfh_pt[1] << " " << bfh_pt[2] << " " << bfh_pt[3] << endl; 
     if (max_idx == 0){
         if (bfh_pt[2] >= bfh_pt[3]){
             h1 = h_idx[0]; h2 = h_idx[1]; b1fh1 = bfh[0]; b2fh1 = bfh[1]; b1fh2 = bfh[2]; b2fh2 = bfh[3];}
@@ -202,7 +195,7 @@ ints FirstParticle_idx(ints pid, floats pt, ints m1, ints m2, ints d1, ints d2, 
             h1 = h_idx[1]; h2 = h_idx[0]; b1fh1 = bfh[3]; b2fh1 = bfh[2]; b1fh2 = bfh[0]; b2fh2 = bfh[1];}
         else {h1 = h_idx[1]; h2 = h_idx[0]; b1fh1 = bfh[2]; b2fh1 = bfh[3]; b1fh2 = bfh[1]; b2fh2 = bfh[0];}}        
     else {h1 = -1; h2 = -1; b1fh1 = -1; b2fh1 = -1; b1fh2 = -1; b2fh2 = -1; std::cout << "Noooo!" << endl;}
-    //std::cout << h1 << " " << h2 << " " << b1fh1 << endl << endl;
+
     out.push_back(top1_idx); //0
     out.push_back(bft1);
     out.push_back(top2_idx); //2
@@ -253,14 +246,13 @@ int dRMatching_idx(int idx, float drmax, floats pt1, floats eta1, floats phi1, f
     tmp1.SetPtEtaPhiM(pt1[idx], eta1[idx], phi1[idx], m1[idx]);
     int matched_idx = -1; float mindR = 9999;
     for (int j=0; j<int(pt2.size()); j++){
-        if (pt2[j] < 20 || abs(eta2[j]) > 2.5) continue;
-        if (abs((pt1[idx]-pt2[j])/pt1[idx])>0.2) continue;
+        if (pt2[j] < 25 || abs(eta2[j]) > 2.8) continue;
+//        if (abs((pt1[idx]-pt2[j])/pt1[idx])>0.6) continue;
 //        if (pt2[j] == m2[j]) m2[j]=0;
         tmp2.SetPtEtaPhiM(pt2[j], eta2[j], phi2[j], m2[j]);
         if (tmp1.DeltaR(tmp2) < mindR) {
             matched_idx = j;
             mindR = tmp1.DeltaR(tmp2);
-            // std::cout << "mindR : " << mindR << endl;
         }
     }
     if (mindR > drmax) return -1;
@@ -291,7 +283,6 @@ floats GetE(floats pt, floats eta, floats phi, floats m){
 floats GenHiggsReco(float pt1, float eta1, float phi1, float m1, float pt2, float eta2, float phi2, float m2){
     floats out;
     if (pt1 <= 0 || pt2 <= 0) out = {-999,-999,-999,-999,-999};
-//        std::cout << "pt: " << pt1 << " " << pt2 << "GenHiggsReco : " << out << endl ; return out;}
     auto tmp1 = TLorentzVector(); tmp1.SetPtEtaPhiM(pt1, eta1, phi1, m1);
     auto tmp2 = TLorentzVector(); tmp2.SetPtEtaPhiM(pt2, eta2, phi2, m2);
     out.push_back((tmp1+tmp2).Pt());
@@ -326,7 +317,7 @@ float dR2(float pt1, float eta1, float phi1, float m1, float pt2, float eta2, fl
     return out;
 }
 
-floats RecoHiggs(floats pt, floats eta, floats phi, floats m){
+floats RecoHiggs(floats pt, floats eta, floats phi, floats m, float b1h1, float b2h1, float b1h2, float b2h2){
     floats out;
     auto tmp1 = TLorentzVector();
     auto tmp2 = TLorentzVector();
@@ -334,32 +325,42 @@ floats RecoHiggs(floats pt, floats eta, floats phi, floats m){
     float X_Higgs;
     float X_Higgs_min = 99999;
     float HiggsMass = 125.0;
-    float WHiggs = 10.0;
+    float WHiggs = 4.07;
     float dR;
-    float Higgs_pt; float Higgs_eta; float Higgs_phi; float Higgs_mass;
+    float Higgs_pt; float Higgs_eta; float Higgs_phi; float tmp_mass=-9999; float Higgs_mass = -9999;
+    int matched_idx1 = 999; int matched_idx2 = 999;
     for (int i=0; i<int(pt.size()); i++){
         tmp1.SetPtEtaPhiM(pt[i], eta[i], phi[i], m[i]);
         for (int j=i+1; j<int(pt.size()); j++){
             tmp2.SetPtEtaPhiM(pt[j], eta[j], phi[j], m[j]);
             tmp = tmp1 + tmp2; dR = tmp1.DeltaR(tmp2);
-            Higgs_mass = tmp.M();
-            X_Higgs = std::pow((Higgs_mass-HiggsMass)/WHiggs, 2); // + dR;
+            tmp_mass = tmp.M();
+            std::cout << i << j << " " << tmp_mass << endl;
+            X_Higgs = abs(tmp_mass-HiggsMass);
             if (X_Higgs < X_Higgs_min){
-                //std::cout << dR << endl;
                 X_Higgs_min = X_Higgs;
-                //std::cout << i << " " << X_Higgs_min << endl; 
                 Higgs_pt = tmp.Pt();
                 Higgs_eta = tmp.Eta();
                 Higgs_phi = tmp.Phi();
-                Higgs_mass = tmp.M();
-                //std::cout << Higgs_mass << endl;
+                Higgs_mass = tmp_mass;
+                matched_idx1 = i; matched_idx2 = j;
             }
         }
     }
+//    std::cout << "Final Higgs Mass: " << Higgs_mass << endl << endl;
+    float b1fh = pt[matched_idx1]; float b2fh = pt[matched_idx2]; int correct = -1;
+//    std::cout << b1fh << " " << b2fh << endl;
+//    std::cout << b1h1 << " " << b2h1 << " " << b1h2 << " " << b2h2 << endl;
+    if ( ((b1fh == b1h1) && (b2fh == b2h1)) || ((b1fh == b1h2) && (b2fh == b2h2)) ) correct = 1;
+//    std::cout << correct << endl;
     out.push_back(Higgs_pt);
     out.push_back(Higgs_eta);
     out.push_back(Higgs_phi);
     out.push_back(Higgs_mass);
+    out.push_back(matched_idx1);
+    out.push_back(matched_idx2);
+    out.push_back(correct);
+    out.push_back(X_Higgs_min);
     return out;
 }
 
@@ -470,8 +471,6 @@ ints nOverlap(int bt1, int bt2, int b1h1, int b2h1, int b1h2, int b2h2){
     if (b1h1!=-1) idx.push_back(b1h1); if (b2h1!=-1) idx.push_back(b2h1); 
     if (b1h2!=-1) idx.push_back(b1h2); if (b2h2!=-1) idx.push_back(b2h2);
     if (idx.size()==0) idx.push_back(-999);
-//    std::cout << "bt1: " << bt1 << ", bt2: " << bt2 << ", b1h1: " << b1h1 << ", b2h1: " << b2h1 << ", b1h1: " << b1h2 << ", b2h2: " << b2h2 << endl;
-//    std::cout << "Overlap idx vector : " << idx << endl;
     int count1 = std::count(idx.begin(), idx.end(), bt1);
     int count2 = std::count(idx.begin(), idx.end(), bt2);
     int count3 = std::count(idx.begin(), idx.end(), b1h1);
@@ -498,10 +497,10 @@ float idx_var(floats var, int idx){
 
 ints pt_scheme(float b1h1, float b2h1, float b1h2, float b2h2, float bt1, float bt2){
     ints out; ints err = {-3, -3, -3, -3, -3, -3, -3};
-    if (b1h1<0 || b2h1<0 || b1h2<0 || b2h2<0 || bt1<0 || bt2<0) return err; 
+//    if (b1h1<0 || b2h1<0 || b1h2<0 || b2h2<0 || bt1<0 || bt2<0) return err; 
     floats tmp1 = {b1h1, b2h1, b1h2, b2h2, bt1, bt2} ;
     floats tmp2 = {b1h1, b2h1, b1h2, b2h2, bt1, bt2} ;
-    std::cout << "pT how's it? : " << tmp2 << endl; 
+//    std::cout << "pT how's it? : " << tmp2 << endl; 
     std::sort(tmp2.begin(), tmp2.end(), std::greater<float>());    
     for (int i=0; i<int(tmp1.size()); i++){
         float target = tmp1[i];
@@ -509,22 +508,32 @@ ints pt_scheme(float b1h1, float b2h1, float b1h2, float b2h2, float bt1, float 
         for (int j=0; j<int(tmp2.size()); j++){
             if (tmp2[j] == target) order = j;
         }
-        out.push_back(order);
+        out.push_back(order); // Relative pT order among bxYx. 0~5.
     }    
-    if ((out[0]<=3 && out[1]<=3) || (out[2]<=3 && out[3]<=3)) out.push_back(1); // Higgs in the scope.
-    else out.push_back(-1);
     return out;
 }
 
+int Matchable(floats bpt, float b1h1, float b2h1, float b1h2, float b2h2, float bt1, float bt2){
+    int out;
+    float b5pt = bpt[4];
+    if ( ((b1h1>0) && (b2h1>0)) && ((b1h1>=b5pt) && (b2h1>=b5pt)) ) out = 1;
+    else if ( ((b1h2>0) && (b2h2>0)) && ((b1h2>=b5pt) && (b2h2>=b5pt)) ) out = 1;
+    else out = -1;
+    return out;
+}
+
+//////////////////////////////////////////////////////////////// 
 //////////////// bJet Categorization /////////////////////////// 
-ints bJetFrom(floats bJet, float b1h1, float b2h1, float b1h2, float b2h2, float bt1, float bt2){
+//////////////////////////////////////////////////////////////// 
+
+ints bJetFrom(floats bpt, float b1h1, float b2h1, float b1h2, float b2h2, float bt1, float bt2){
     ints out; int nMatched=0; int nfromtop=0; int nfromhiggs=0;
-    if (int(bJet.size())<4) {out = {-2, -2, -2, -2, -2, -2, -2, -2}; return out;}  
-    for (int i=0; i<4; i++){
-        if (bJet[i] == b1h1 || bJet[i] == b2h1) out.push_back(1);
-        else if (bJet[i] == b1h2 || bJet[i] == b2h2) out.push_back(2);
-        else if (bJet[i] == bt1 || bJet[i] == bt2) out.push_back(0); // Priority for higgs, considering bkg vs sig.
-        else out.push_back(-1);
+    if (int(bpt.size())<5) {out = {-2, -2, -2, -2, -2, -2, -2, -2}; return out;}  
+    for (int i=0; i<5; i++){
+        if (bpt[i] == b1h1 || bpt[i] == b2h1) out.push_back(1); // 1,2 ; 0 ; -1
+        else if (bpt[i] == b1h2 || bpt[i] == b2h2) out.push_back(2); 
+        else if (bpt[i] == bt1 || bpt[i] == bt2) out.push_back(0);
+        else out.push_back(-1); // Must not get matched as they are -999. 
 
         if (out.back() == 0) nfromtop += 1;
         if (out.back() == 1 || out.back() == 2) nfromhiggs += 1;
@@ -537,69 +546,72 @@ ints bJetFrom(floats bJet, float b1h1, float b2h1, float b1h2, float b2h2, float
     return out;
 }
 
-int bCat_top_1(int b1, int b2, int b3, int b4){
+int bCat_higgs5_2(int b1, int b2, int b3, int b4, int b5){
     int out;
-    if (b1 == 0 && b2 == 0) out = 0;
-    else if (b1 == 0 && b3 == 0) out=1;
-    else if (b1 == 0 && b4 == 0) out=2;
-    else if (b2 == 0 && b3 == 0) out=3;
-    else if (b2 == 0 && b4 == 0) out=4;
-    else if (b3 == 0 && b4 == 0) out=5;
-    else if (b1 == 0) out=6;
-    else if (b2 == 0) out=7;
-    else if (b3 == 0) out=8;
-    else if (b4 == 0) out=9;
-    else out=10;
-    return out;
-}
-int bCat_top_2(int b1, int b2, int b3, int b4){
-    int out;
-    if (b1 == 0 && b2 == 0) out = 0;
-    else if (b1 == 0 && b3 == 0) out=1;
-    else if (b1 == 0 && b4 == 0) out=2;
-    else if (b2 == 0 && b3 == 0) out=3;
-    else if (b2 == 0 && b4 == 0) out=4;
-    else if (b3 == 0 && b4 == 0) out=5;
-    else out=6;
+    if ( (b1>=1) && (b2>=1) ) out = 0;
+    else if ( (b1>=1) && (b3>=1) ) out = 1;
+    else if ( (b1>=1) && (b4>=1) ) out = 2;
+    else if ( (b1>=1) && (b5>=1) ) out = 3;
+    else if ( (b2>=1) && (b3>=1) ) out = 4;
+    else if ( (b2>=1) && (b4>=1) ) out = 5;
+    else if ( (b2>=1) && (b5>=1) ) out = 6;
+    else if ( (b3>=1) && (b4>=1) ) out = 7;
+    else if ( (b3>=1) && (b5>=1) ) out = 8;
+    else if ( (b4>=1) && (b5>=1) ) out = 9;
+    else out = 10;
     return out;
 }
 
-int bCat_higgs_1(int b1, int b2, int b3, int b4){
+int bCat_higgs5_3(int b1, int b2, int b3, int b4, int b5){
     int out;
-    if (b1 == 2) b1 -= 1;
-    if (b2 == 2) b2 -= 1;
-    if (b3 == 2) b3 -= 1;
-    if (b4 == 2) b4 -= 1;
-
-    if (b2 == 1 && b3 == 1) out = 0;
-    else if (b2 == 1 && b4 == 1) out=1;
-    else if (b3 == 1 && b4 == 1) out=2;
-    else if (b2 == 1) out=3;
-    else if (b3 == 1) out=4;
-    else if (b4 == 1) out=5;
-    else out=6;
-    return out;
-}
-int bCat_higgs_2(int b1, int b2, int b3, int b4){
-    int out;
-    if (b1 == 2) b1 -= 1;
-    if (b2 == 2) b2 -= 1;
-    if (b3 == 2) b3 -= 1;
-    if (b4 == 2) b4 -= 1;
-
-    if (b2 == 1 && b3 == 1) out = 0;
-    else if (b2 == 1 && b4 == 1) out=1;
-    else if (b3 == 1 && b4 == 1) out=2;
-    else out=3;
+    if ( (b1>=1) && (b2>=1) && (b3>=1)) out = 0;
+    else if ( (b1>=1) && (b2>=1) && (b4>=1)) out = 1;
+    else if ( (b1>=1) && (b2>=1) && (b5>=1)) out = 2;
+    else if ( (b1>=1) && (b3>=1) && (b4>=1)) out = 3;
+    else if ( (b1>=1) && (b3>=1) && (b5>=1)) out = 4;
+    else if ( (b1>=1) && (b4>=1) && (b5>=1)) out = 5;
+    else if ( (b2>=1) && (b3>=1) && (b4>=1)) out = 6;
+    else if ( (b2>=1) && (b3>=1) && (b5>=1)) out = 7;
+    else if ( (b2>=1) && (b4>=1) && (b5>=1)) out = 8;
+    else if ( (b3>=1) && (b4>=1) && (b5>=1)) out = 9;
+    else out = 10;
     return out;
 }
 
+int bCat_higgs5_2Mat(int b1, int b2, int b3, int b4, int b5){
+    int out;
+    if ( (b1>=1) && (b1==b2) ) out = 0;
+    else if ( (b1>=1) && (b1==b3) ) out = 1;
+    else if ( (b1>=1) && (b1==b4) ) out = 2;
+    else if ( (b1>=1) && (b1==b5) ) out = 3;
+    else if ( (b2>=1) && (b2==b3) ) out = 4;
+    else if ( (b2>=1) && (b2==b4) ) out = 5;
+    else if ( (b2>=1) && (b2==b5) ) out = 6;
+    else if ( (b3>=1) && (b3==b4) ) out = 7;
+    else if ( (b3>=1) && (b3==b5) ) out = 8;
+    else if ( (b4>=1) && (b4==b5) ) out = 9;
+    else out = 10;
+    return out;
+}
+
+int bCat_top_1(int b1, int b2, int b3, int b4, int b5){
+    int out;
+    if (b1==0) out = 0;
+    else if (b2==0) out = 1;
+    else if (b3==0) out = 2;
+    else if (b4==0) out = 3;
+    else if (b5==0) out = 4;
+    else out = 5;
+    return out;
+}
+
+//////////////////////////////////////////////////////////////// 
 //////////////// bJet Categorization /////////////////////////// 
-//////////////// bJet Categorization /////////////////////////// 
+//////////////////////////////////////////////////////////////// 
 
 floats Vars(floats dr, floats pt, floats eta, floats phi, floats mass, floats E){
     floats out; 
-    std::map<int, ints> arrow = {{0, {0,1}}, {1, {0,2}}, {2, {0,3}}, {3, {1,2}}, {4, {1,3}}, {5, {2,3}}};
+    std::map<int, ints> arrow = {{0, {0,1}}, {1, {0,2}}, {2, {0,3}}, {3, {0,4}}, {4, {1,2}}, {5, {1,3}}, {6, {1,4}}, {7, {2,3}}, {8, {2,4}}, {9, {3,4}} };
     int max_idx = std::max_element(dr.begin(), dr.end()) - dr.begin(); float max_dr = dr[max_idx];
     int min_idx = std::min_element(dr.begin(), dr.end()) - dr.begin(); float min_dr = dr[min_idx];
  
@@ -613,8 +625,8 @@ floats Vars(floats dr, floats pt, floats eta, floats phi, floats mass, floats E)
     out.push_back(max_dr); // [1] max_dr
     out.push_back(min_dr); // [2] min_dr
 
-    int eta_idx1 = arrow[max_idx][0]; int eta_idx2 = arrow[max_idx][1]; // * VALID AT 4JET CASE ONLY *
-    out.push_back(abs(eta[eta_idx1] - eta[eta_idx2])); // [3] dEta_WhenMaxdR * VALID AT 4JET CASE ONLY *
+    int eta_idx1 = arrow[max_idx][0]; int eta_idx2 = arrow[max_idx][1]; // * VALID AT 5JET CASE ONLY *
+    out.push_back(abs(eta[eta_idx1] - eta[eta_idx2])); // [3] dEta_WhenMaxdR * VALID AT 5JET CASE ONLY *
 
     float ht;
     float sum_pt = 0;

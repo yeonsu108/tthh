@@ -1,33 +1,29 @@
-# ssh gpu-0-X ; conda activate py36
-
 import os
-import sys
 import time
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
 import uproot
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import tensorflow as tf
-import pickle
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.models import load_model
+import pandas as pd
+import matplotlib.pyplot as plt
 from utils.plots import *
-from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 
+start_time = time.time()
 ###################################################
 #                     I/O                         #
 ###################################################
 indir = "./samples1/"; PRE = "B_1204_14TeV" # Should be apart from data for event classification.
-outdir = "./DNN_result/" + PRE + "/bJetCassification/bCat_higgs5_2Mat/" # MODIFY #
+outdir = "./CNN_result/" + PRE + "/bJetCassification/bCat_higgs5_2Mat/" # MODIFY #
 os.makedirs(outdir, exist_ok=True)
 class_names = ["Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "NoCat"]
 
 inputvars = [
+# 30 = reshape(-1_nEvents, 5, *6, 1(Black/White))
 
-     "bJet_size",
+#     "bJet_size",
      "bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass",
      "bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass",
      "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass",
@@ -35,12 +31,22 @@ inputvars = [
      "bJet5_pt", "bJet5_eta", "bJet5_phi", "bJet5_mass",
 
      # bb_dr
-     "b1b2_dr", "b1b3_dr", "b1b4_dr", "b1b5_dr", 
-     "b2b3_dr", "b2b4_dr", "b2b5_dr", 
+     "b1b2_dr", "b1b3_dr", "b1b4_dr", "b1b5_dr",
+     "b2b3_dr", "b2b4_dr", "b2b5_dr",
      "b3b4_dr", "b3b5_dr",
      "b4b5_dr",
 
-            ]
+     # Lepton
+#     "Lep_size",
+#     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
+#     "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
+#     "MET_E", # why decrease..
+
+
+     # Defined Kinematic vars
+#     "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
+#     "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
+        ]
 
 catvar = ["bCat_higgs5_2Mat"] # MODIFY #
 openvars = inputvars + catvar
@@ -61,7 +67,7 @@ pd_cat9 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 8]
 pd_cat10 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 9]
 pd_cat11 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 10]
 
-nCat1 = len(pd_cat1) 
+nCat1 = len(pd_cat1)
 nCat2 = len(pd_cat2)
 nCat3 = len(pd_cat3)
 nCat4 = len(pd_cat4)
@@ -74,6 +80,17 @@ nCat10 = len(pd_cat10)
 nCat11 = len(pd_cat11)
 ntrain = min(nCat1, nCat2, nCat3, nCat4, nCat5, nCat6, nCat7, nCat8, nCat9, nCat10)#, nCat11)
 print("ntrain = ", ntrain)
+print(nCat1)
+print(nCat2)
+print(nCat3)
+print(nCat4)
+print(nCat5)
+print(nCat6)
+print(nCat7)
+print(nCat8)
+print(nCat9)
+print(nCat10)
+print(nCat11)
 
 pd_cat1 = pd_cat1.sample(n=ntrain).reset_index(drop=True)
 pd_cat2 = pd_cat2.sample(n=ntrain).reset_index(drop=True)
@@ -96,61 +113,52 @@ y_total = np.array(pd_data.filter(items = ['bCat_higgs5_2Mat'])) # MODIFY #
 
 # Training and Cross-Validation Set
 x_train, x_val, y_train, y_val = train_test_split(x_total, y_total, test_size=0.3)
+x_train = x_train.reshape(-1, 5, 6, 1); x_val = x_val.reshape(-1, 5, 6, 1)
 print("x_train: ",len(x_train),"x_val: ", len(x_val),"y_train: ", len(y_train),"y_val", len(y_val))
 
 ###################################################
 #                      Model                      #
 ###################################################
-epochs = 1000; patience_epoch = 3; batch_size = 512; print("batch size :", batch_size)
-activation_function='relu'
-weight_initializer = 'random_normal'
+epochs = 70; patience_epoch=10; batch_size = 512; print("batch_size :", batch_size) 
+activation_function = tf.nn.relu
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=patience_epoch)
 mc = ModelCheckpoint(outdir+'/best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
 
-model = tf.keras.models.Sequential()
-###############    Input Layer      ###############
-model.add(tf.keras.layers.Flatten(input_shape = (x_train.shape[1],)))
-###############    Hidden Layer     ###############
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Dense(10, activation=activation_function))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Dense(10, activation=activation_function, kernel_regularizer='l2', kernel_initializer=weight_initializer))
-###############    Output Layer     ###############
-print("class_names : ", len(class_names))
-model.add(tf.keras.layers.Dense(len(class_names), activation="softmax"))
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Conv2D(filters=16, kernel_size=1, strides=1, activation=activation_function, use_bias=False, input_shape=(5, 6, 1)),
+    tf.keras.layers.Conv2D(filters=32, kernel_size=3, strides=1, activation=activation_function, use_bias=False),
+    tf.keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation=activation_function, use_bias=False),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(100, activation=activation_function),
+    tf.keras.layers.Dense(11, activation=tf.nn.softmax)
+])
 ###################################################
-start_time = time.time()
-
-model.compile(optimizer=tf.keras.optimizers.Adam(clipvalue=0.5), 
-                   loss="sparse_categorical_crossentropy", 
-                   metrics = ["accuracy", "sparse_categorical_accuracy"])
+model.compile(loss='sparse_categorical_crossentropy',
+              optimizer = 'adam',
+              metrics=['accuracy', 'sparse_categorical_accuracy'])
 model.summary()
 
-hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
-                                validation_data=(x_val,y_val), callbacks=[es, mc])
+hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_val, y_val),
+        callbacks=[es,mc])
+
 end_time = time.time()
 ###################################################
 #                  Prediction                     #
 ###################################################
-print("#             PREDICTION                 #")
-pred_train = model.predict(x_train); pred_train = np.argmax(pred_train, axis=1)
-pred_val = model.predict(x_val) ; pred_val = np.argmax(pred_val, axis=1)
-print("Is it similar?")
-print("Prediction for validation set: ", pred_val)
-print("Answer for train set:         ", y_val.T)
+pred_train = model.predict(x_train); print(pred_train); pred_train_arg = np.argmax(pred_train, axis=1)
+pred_val = model.predict(x_val); print(pred_val); pred_val_arg = np.argmax(pred_val, axis=1)
+train_result = pd.DataFrame(np.array([y_train.T[0], pred_train.T[0]]).T, columns=["True", "Pred"]) # True0~4,Pred0~1<"tthh"
+val_result = pd.DataFrame(np.array([y_val.T[0], pred_val.T[0]]).T, columns=["True", "Pred"])
 
 ###################################################
-#         Confusion Matrix, Acc Curve             #
+#                Confusion Matrix                 #
 ###################################################
 print("#           CONFUSION MATRIX             #")
-plot_confusion_matrix(y_val, pred_val, classes=class_names,
-                    title='Confusion matrix, without normalization', savename=outdir+"/confusion_matrix_val.pdf")
-plot_confusion_matrix(y_val, pred_val, classes=class_names, normalize=True,
-                    title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix_val.pdf")
-plot_confusion_matrix(y_train, pred_train, classes=class_names,
-                    title='Confusion matrix, without normalization', savename=outdir+"/confusion_matrix_train.pdf")
-plot_confusion_matrix(y_train, pred_train, classes=class_names, normalize=True,
-                    title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix_train.pdf")
+plot_confusion_matrix(y_val, pred_val_arg, classes=class_names,
+                    title='Confusion matrix, without normalization', savename=outdir+"/confusion_matrix.pdf")
+
+plot_confusion_matrix(y_val, pred_val_arg, classes=class_names, normalize=True,
+                    title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix.pdf")
 
 plot_performance(hist=hist, savedir=outdir)
 
@@ -167,17 +175,16 @@ test_loss = test_results[0]
 test_acc = test_results[1]
 print(f"Test accuracy: {test_acc * 100:.2f}%")
 
+'''
 ###################################################
 #              Feature Importance                 #
 ###################################################
 print("#          FEATURE IMPORTANCE             #")
 model_dir = outdir + '/best_model.h5'
-plot_feature_importance(model_dir, x_val, inputvars, outdir)
+plot_feature_importance(model_dir, x_val.reshape(-1), inputvars, outdir)
+'''
 ###################################################
 #                     Time                        #
 ###################################################
 execution_time = end_time - start_time
 print(f"execution time: {execution_time} second")
-print("---Done---")
-
-

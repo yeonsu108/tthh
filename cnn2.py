@@ -28,12 +28,12 @@ from utils.var_functions import *
 #                     I/O                         #
 ###################################################
 indir = "./samples2/"; PRE = "FULL_1204_14TeV"
-outdir = "./DNN_result/" + PRE + "/LetsFind_tthh/bCat_higgs5_2Mat/"    # MODIFY  #
+outdir = "./CNN_result/" + PRE + "/LetsFind_tthh/bCat_higgs5_2Mat/"    # MODIFY  #
 os.makedirs(outdir, exist_ok=True)
 process_names = ["tthh", "tthbb", "ttbb", "ttbbbb", "ttbbcc"]
 
 dnn1vars = [
-     "bJet_size",
+#     "bJet_size",
      "bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass",
      "bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass",
      "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass",
@@ -50,18 +50,17 @@ dnn1vars = [
 
 
 addvars = [
-
+    "close_Higgs_mass",
      # Lepton
-     "Lep_size",
-     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
-     "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
-     "MET_E", # why decrease..
+#     "Lep_size",
+#     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
+#     "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
+#     "MET_E", # why decrease..
 
 
-    # Defined Kinematic vars
-     "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
-     "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
-
+   # Defined Kinematic vars
+#     "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
+#     "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
            ]
  
 inputvars = dnn1vars + addvars
@@ -89,7 +88,7 @@ ntthbb  = len(df_tthbb)
 nttbb   = len(df_ttbb) 
 nttbbbb = len(df_ttbbbb)
 nttbbcc = len(df_ttbbcc)
-ntrain = min(ntthh, ntthbb, nttbb, nttbbbb, nttbbcc)
+ntrain  = min(ntthh, ntthbb, nttbb, nttbbbb, nttbbcc)
 
 df_tthh   = df_tthh.sample(n=ntrain).reset_index(drop=True)
 df_tthbb  = df_tthbb.sample(n=ntrain).reset_index(drop=True)
@@ -107,24 +106,23 @@ y_total = np.array(df_total.filter(items = ["category"]))
 ###################################################
 #               bJet Classification               #
 ###################################################
-model_dir = "DNN_result/B_1204_14TeV/bJetCassification/bCat_higgs5_2Mat/best_model.h5"  ## MODIFY!!! ##
+model_dir = "CNN_result/B_1204_14TeV/bJetCassification/bCat_higgs5_2Mat/best_model.h5"  # MODIFY #
 bft_model = tf.keras.models.load_model(model_dir)
 bft_model.summary()
-print("x_total: ", x_total); print("x_total_shape: ", x_total.shape)
-pred_bcat = bft_model.predict(x_bCat); print("pred_bcat : ", pred_bcat)
+pred_bcat = bft_model.predict(x_bCat.reshape(-1,5,6,1)); print("pred_bcat : ", pred_bcat) # MODIFY #
 pred_bcat = np.argmax(pred_bcat, axis=1) # (arg 0~10 that with the biggest prob)
 
 ### NEW VARIABLES ###
 df_total["pred_bcat"] = pred_bcat
 df_total["higgs_mass"] = df_total.apply(higgs_5_2, axis = 1) # MODIFY #
-df_total["X_higgs"] = df_total.apply(X_higgs, axis = 1) # MODIFY #
+#df_total["X_higgs"] = df_total.apply(X_higgs, axis = 1) # MODIFY #
 #df_total["bfh_dr"] = df_total.apply(bfh_dr, axis = 1) # MODIFY #
 
 ### PLOTTING ###
 df_plot = df_total[(df_total["category"] == 0) & (df_total["higgs_mass"]>0)] # You can draw higgs from no higgs events.
 
 higgs_mass = np.array(df_plot.filter(items = ["higgs_mass"]))
-hist, bin_edges = np.histogram(higgs_mass, bins=39, range = (0, 500), density=True)
+hist, bin_edges = np.histogram(higgs_mass, bins=39, range = (10, 400), density=True)
 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 def gaussian(x, mu, sigma, A):
     return A * np.exp(-(x - mu)**2 / (2 * sigma**2))
@@ -137,7 +135,7 @@ upper_bound = mu + sigma
 
 # Assuming df_new is your DataFrame containing 'close_Higgs_mass'
 close_higgs_mass = np.array(df_plot.filter(items=["close_Higgs_mass"]))
-hist_close, bin_edges_close = np.histogram(close_higgs_mass, bins=39, range=(0, 500), density=True)
+hist_close, bin_edges_close = np.histogram(close_higgs_mass, bins=39, range=(10, 400), density=True) 
 bin_centers_close = (bin_edges_close[:-1] + bin_edges_close[1:]) / 2
 
 # Define Gaussian function
@@ -197,24 +195,8 @@ plt.show()
 ###################################################
 #                PreProcessing_2                  #
 ###################################################
-# Case1 : One Hot Encoding for pred_bcat # 
-_x_total = df_total.filter(items = inputvars_2)
-_x_ohe = pd.get_dummies(_x_total['pred_bcat'], prefix='pred_bcat', drop_first=True)
-_x_total = _x_total.drop('pred_bcat', axis=1)
-_x_total = pd.concat([_x_total, _x_ohe], axis = 1)
-x_total = np.array(_x_total)
+x_total = np.array(df_total.filter(items = inputvars_2))
 y_total = np.array(df_total.filter(items = ["category"]))
-# Case1 : One Hot Encoding for pred_bcat # 
-
-'''
-# Case 2 : No OHE, No pred_bcat #
-_x_total = df_total.filter(items = inputvars_2)
-_x_total = _x_total.drop('pred_bcat', axis=1)
-x_total = np.array(_x_total)
-y_total = np.array(df_total.filter(items = ["category"]))
-# Case 2 : No OHE, No pred_bcat #
-'''
-
 print("Final x = ", x_total)
 print("Final y = ", y_total)
 
@@ -222,6 +204,12 @@ print("Final y = ", y_total)
 ntotal = len(y_total)
 train_len = int(0.7*ntotal)
 x_train, x_val, y_train, y_val = train_test_split(x_total, y_total, test_size=0.3)
+#x_train = np.array([data if data is not None else 0 for data in x_train])
+#x_val = np.array([data if data is not None else 0 for data in x_val])
+#y_train = np.array([data if data is not None else 0 for data in y_train])
+#y_val = np.array([data if data is not None else 0 for data in y_val])
+#x_train = np.nan_to_num(x_train, nan=0)
+#x_val = np.nan_to_num(x_val, nan=0)
 
     
 ###################################################
@@ -261,7 +249,7 @@ model.compile(optimizer=tf.keras.optimizers.Adam(clipvalue=0.5),
               loss="sparse_categorical_crossentropy", 
               metrics = ["accuracy", "sparse_categorical_accuracy"])
 model.summary()
-
+###################################################
 start_time = time.time()
 
 hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
@@ -294,8 +282,8 @@ plot_confusion_matrix(y_train, pred_train_arg, classes=process_names,
 plot_confusion_matrix(y_train, pred_train_arg, classes=process_names, normalize=True,
                     title='Normalized confusion matrix', savename=outdir+"/norm_confusion_matrix_train.pdf")
 
-plot_output_dist(train_result, val_result,sig="tthh", savedir=outdir)
 plot_performance(hist=hist, savedir=outdir)
+plot_output_dist(train_result, val_result,sig="tthh", savedir=outdir)
 
 ###################################################
 #                    Accuracy                     #
@@ -309,18 +297,16 @@ test_results = model.evaluate(x_val, y_val)
 test_loss = test_results[0]
 test_acc = test_results[1]
 print(f"Test accuracy: {test_acc * 100:.2f}%")
+
 ###################################################
 #                Feature Importance               #
 ###################################################
-print("#          FEATURE IMPORTANCE             #")
-model_dir = outdir + '/best_model.h5'
-plot_feature_importance(model_dir, x_val, _x_total.columns, outdir)
 
 ###################################################
 #                     Time                        #
 ###################################################
 print("Number of full data: ", ntrain*5)
-colnames = _x_total.columns; print("Columns :",colnames)
+colnames = df_total.columns; print("Columns :",colnames)
 execution_time = end_time - start_time
 print(f"execution time: {execution_time} second")
 print("---Done---")

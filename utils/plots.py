@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
+from tqdm import tqdm
 
 def plot_confusion_matrix(y_true, y_pred, classes, normalize=False,  title=None, cmap=plt.cm.Blues, savename="./cm.pdf"):
     # This function prints and plots the confusion matrix. Normalization can be applied by setting `normalize=True`.
@@ -67,34 +68,50 @@ def plot_performance(hist, savedir="./"):
     plt.savefig(os.path.join(savedir+'/fig_score_loss.pdf'))
     plt.gcf().clear()
 
-def plot_output_dist(train, test,sig="tthh", savedir="./"):
+def plot_output_dist(train, test,sig="tthh", savedir="./",threshold=0.2):
     #sig can be "tt" or "st"
-    sig_class = {"tthh":0, "ttbb":1, "ttbbbb":2, "ttbbcc":3}
-    sigtrain = np.array(train[train["True"]==sig_class[sig]]["Pred"])
-    bkgtrain = np.array(train[train["True"]!=sig_class[sig]]["Pred"])
-    sigtest = np.array(test[test["True"]==sig_class[sig]]["Pred"])
-    bkgtest = np.array(test[test["True"]!=sig_class[sig]]["Pred"])
-    bins=40
-    scores = [sigtrain, sigtest, bkgtrain, bkgtest]
+    sig_class = {"tthh":0, "tthbb":1, "ttbb":2, "ttbbbb":3, "ttbbcc":4}
+    sigtrain = np.array(train[train["True"] ==sig_class[sig]]["Pred"]) # DataFrame, df[with column logic] 's [column]
+    bkgtrain = np.array(train[train["True"] !=sig_class[sig]]["Pred"]) # "True" -> y value in (train or val)
+    sigVal = np.array(test[test["True"] ==sig_class[sig]]["Pred"])
+    bkgVal = np.array(test[test["True"] !=sig_class[sig]]["Pred"])
+    ttbbVal = np.array(test[test["True"] ==sig_class["ttbb"]]["Pred"])
+    ttbbbbVal = np.array(test[test["True"] ==sig_class["ttbbbb"]]["Pred"])
+    ttbbccVal = np.array(test[test["True"] ==sig_class["ttbbcc"]]["Pred"])
+    tthbbVal = np.array(test[test["True"] ==sig_class["tthbb"]]["Pred"])
+
+    bins=50
+    scores = [sigtrain, sigVal, bkgtrain, bkgVal]
     #print (scores)
     low = min(np.min(d) for d in scores)
     high = max(np.max(d) for d in scores)
 
+    bkgtest_pass = bkgVal[bkgVal > threshold]
+    ttbbtest_pass = ttbbVal[ttbbVal > threshold]
+    ttbbbbtest_pass = ttbbbbVal[ttbbbbVal > threshold]
+    ttbbcctest_pass = ttbbccVal[ttbbccVal > threshold]
+    tthbbtest_pass = tthbbVal[tthbbVal > threshold]
+    sigtest_pass = sigVal[sigVal > threshold]
+    print("bkg:",len(bkgtest_pass))
+    print("ttbb:",len(ttbbtest_pass)/len(ttbbVal))
+    print("ttbbbb:",len(ttbbbbtest_pass)/len(ttbbbbVal))
+    print("ttbbcc:",len(ttbbcctest_pass)/len(ttbbccVal))
+    print("tthbb:",len(tthbbtest_pass)/len(tthbbVal))
+    print("sig:",len(sigtest_pass)/len(sigVal))
     # test is dotted
     plt.hist(sigtrain, color="b", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label=sig+" (train)")
     plt.hist(bkgtrain, color="r", alpha=0.5, range=(low, high), bins=bins, histtype="stepfilled", density=True, label="Others (train)")
 
-    hist, bins = np.histogram(sigtest, bins=bins, range=(low,high), density=True)
-    scale = len(sigtest) / sum(hist)
+    hist, bins = np.histogram(sigVal, bins=bins, range=(low,high), density=True)
+    scale = len(sigVal) / sum(hist)
     err = np.sqrt(hist * scale) / scale
     width = (bins[1] - bins[0])
     center = (bins[:-1] + bins[1:]) / 2
     plt.errorbar(center, hist, yerr=err, fmt='o', c='b', label=sig+' (test)')
-    hist, bins = np.histogram(bkgtest, bins=bins, range=(low,high), density=True)
-    scale = len(bkgtest) / sum(hist)
+    hist, bins = np.histogram(bkgVal, bins=bins, range=(low,high), density=True)
+    scale = len(bkgVal) / sum(hist)
     err = np.sqrt(hist * scale) / scale
     plt.errorbar(center, hist, yerr=err, fmt='o', c='r', label='Others (test)')
-
     plt.title("Output distribution")
     plt.ylabel("entry")
     plt.xlabel("probability")
@@ -134,3 +151,64 @@ def plot_roc_curve(fpr,tpr,auc,savedir="./"):
     plt.tight_layout()
     plt.savefig(os.path.join(savedir+'/fig_roc.pdf'))
     plt.gcf().clear()
+
+def plot_feature_importance(model_dir, x_val, inputvars, outdir="./"):
+    model = tf.keras.models.load_model(model_dir)
+    model.summary()
+    input_data = tf.convert_to_tensor(x_val, dtype=tf.float32)
+    print(input_data)
+    name_inputvar = inputvars
+    n_evts = len(x_val)
+    n_var = len(name_inputvar)
+    mean_grads = n_var*[0.0]
+    all_grads = []
+    #mean_jacobian = np.zeros(len(name_inputvar))
+    #jacobian_matrix = np.zeros((len(name_inputvar),len(name_inputvar)))
+    for i, event in tqdm(enumerate(x_val), total=n_evts, desc="Calculating Gradients"):
+        with tf.GradientTape() as tape:
+            inputs = tf.Variable([event])
+            tape.watch(inputs)
+            prediction = model(inputs)[:, 1]
+        first_order_gradients = tape.gradient(prediction, inputs)
+        gradiants = tf.abs(first_order_gradients)
+        numpy_array = gradiants.numpy()[0]
+        all_grads.append(numpy_array)
+        #print(i,numpy_array , len(numpy_array))
+        for n in range(len(mean_grads)):
+            mean_grads[n] += abs(numpy_array[n])/n_evts
+    
+    print(mean_grads) # This is just final iteration (final event), not important yet.
+    df = pd.DataFrame(all_grads)
+    print(df)
+    df.to_csv('data.csv', index=False)
+    
+    gradiants = tf.abs(first_order_gradients)
+    numpy_array = gradiants.numpy()
+    df = pd.DataFrame(numpy_array)
+    print(df)
+    df.to_csv(outdir+'/data.csv', index=False)
+    feature_importance_first_order  = tf.reduce_mean(tf.abs(first_order_gradients), axis=0)
+    feature_importance_dict = dict(zip(name_inputvar, feature_importance_first_order.numpy())) # Mapping
+    #feature_importance_Secondorder  = tf.reduce_mean(tf.abs(second_order_gradients), axis=0)
+    feature_importance_series = pd.Series(feature_importance_dict)
+    
+    print("Feature importance series?")
+    print(feature_importance_series)
+    max_importance_score = feature_importance_series.max()
+    print("Max: ", max_importance_score)
+    for i, importance_score in enumerate(feature_importance_first_order):
+        print(f"Feature {i+1} , {name_inputvar[i]} Importance: {max_importance_score-importance_score:.5f}")
+    
+    print(feature_importance_series.index, feature_importance_series.values)
+    # Order the Feature Importance
+    sorted_indices = np.argsort(feature_importance_series.values)[::-1]
+    sorted_importance = feature_importance_series.values[sorted_indices]
+    sorted_feature_names = feature_importance_series.index[sorted_indices]
+    
+    plt.figure(figsize=(10, 10))
+    plt.barh(sorted_feature_names, max_importance_score - sorted_importance)
+    plt.xlabel('Feature Importance')
+    plt.ylabel('Feature Names')
+    plt.savefig(outdir+'/first_order_gradient_importance.png')
+    plt.title('First-Order Gradient Feature Importance')
+    plt.show()

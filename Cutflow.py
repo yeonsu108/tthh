@@ -5,29 +5,39 @@ import ROOT
 import numpy as np
 
 # Criteria
-OS = "NoFilter_J30L20_0.2dpT"
+PRE = "CUT_FFULL_1130_14TeV"
 Tree = "Delphes"
-print(OS)
+print(PRE)
 
 # Input
-tthh = "./samples1/" + OS + "_tthh_di.root"
-ttbbbb = "./samples1/" + OS + "_ttbbbb_di.root"
-ttbbcc = "./samples1/" + OS + "_ttbbcc_di.root"
-ttbb = "./samples1/" + OS + "_ttbb_di.root"
-tthbb = "./samples1/" + OS + "_tthbb_di.root"
+tthh = "samples2/" + PRE + "_tthh_di.root"
+ttbbbb = "samples2/" + PRE + "_ttbbbb_di.root"
+ttbbcc = "samples2/" + PRE + "_ttbbcc_di.root"
+ttbb = "samples2/" + PRE + "_ttbb_di.root"
+tthbb = "samples2/" + PRE + "_tthbb_di.root"
 TreeName = "Delphes"
 
 # Luminosity [fb^-1]
-L = 300
+L = 3000
 
 # MODIFY!!
 # Cross section * Luminosity = Expected Events
 # [DiLeptonic]
+'''
 x_tthh = 3.791e-2 *L
 x_ttbbbb = 3.1e-1 *L
 x_ttbbcc = 5.012e-1 *L
 x_ttbb = 1.076e2 *L
 x_tthbb = 2.105e1 *L
+'''
+
+# [DiLeptonic_HLLHC]
+x_tthh = 4.113e-05  *L * 1000
+x_ttbbbb =  0.0004423 *L * 1000
+x_ttbbcc = 0.0006947 *L * 1000
+x_ttbb = 0.1321 *L * 1000
+x_tthbb = 0.02261 *L * 1000
+
 
 # [SemiLeptonic] ; *2 -> Generated sampeles partially(W+, W-) and merged.
 #x_tthh = 1.139e-4 *L * 1000 * 2  # CHECK AGAIN
@@ -50,9 +60,9 @@ print("Calculating Acceptance and Cutflow")
 def Acceptance(df):
     Accept = []
     S0 = float(df.Count().GetValue())
-    df = df.Filter("Lep_size >= 2");S1 = float(df.Count().GetValue())
-    df = df.Filter("Jet_size >= 6");S2 = float(df.Count().GetValue())
-    df = df.Filter("bJet_size >= 5");S3 = float(df.Count().GetValue())
+    df = df.Filter("Lep_size >= 2"); S1 = float(df.Count().GetValue())
+    df = df.Filter("Jet_size >= 5"); S2 = float(df.Count().GetValue())
+    df = df.Filter("bJet_size >= 5"); S3 = float(df.Count().GetValue())
     Accept.extend([S0,S1,S2,S3])
     print(Accept)
     return Accept
