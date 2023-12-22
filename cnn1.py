@@ -5,7 +5,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 import uproot
 import numpy as np
 import tensorflow as tf
+from keras.layers import Conv2D, Flatten, Dense, BatchNormalization
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Flatten, Dense, MaxPooling2D, Concatenate
+from tensorflow.keras.models import Model
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from utils.plots import *
@@ -20,10 +24,9 @@ outdir = "./CNN_result/" + PRE + "/bJetCassification/bCat_higgs5_2Mat/" # MODIFY
 os.makedirs(outdir, exist_ok=True)
 class_names = ["Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "NoCat"]
 
-inputvars = [
-# 30 = reshape(-1_nEvents, 5, *6, 1(Black/White))
+var_jet = [
+# 32 = x_train.reshape(-1_nEvents, 8, 4, 1(Black/White))
 
-#     "bJet_size",
      "bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass",
      "bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass",
      "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass",
@@ -35,21 +38,24 @@ inputvars = [
      "b2b3_dr", "b2b4_dr", "b2b5_dr",
      "b3b4_dr", "b3b5_dr",
      "b4b5_dr",
+     "bJet_size", "bb_avg_dr",
+]
 
+var_event = [
      # Lepton
-#     "Lep_size",
-#     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
-#     "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
-#     "MET_E", # why decrease..
+     "Lep_size",
+     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
+     "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
+     "MET_E", # why decrease..
 
 
      # Defined Kinematic vars
-#     "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
-#     "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
+     "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
+     "close_Higgs_pt", "close_Higgs_phi", "close_Higgs_mass", "close_Higgs_eta",
         ]
 
 catvar = ["bCat_higgs5_2Mat"] # MODIFY #
-openvars = inputvars + catvar
+openvars = var_jet + var_event + catvar
 
 ###################################################
 #                 PreProcessing                   #
@@ -80,17 +86,6 @@ nCat10 = len(pd_cat10)
 nCat11 = len(pd_cat11)
 ntrain = min(nCat1, nCat2, nCat3, nCat4, nCat5, nCat6, nCat7, nCat8, nCat9, nCat10)#, nCat11)
 print("ntrain = ", ntrain)
-print(nCat1)
-print(nCat2)
-print(nCat3)
-print(nCat4)
-print(nCat5)
-print(nCat6)
-print(nCat7)
-print(nCat8)
-print(nCat9)
-print(nCat10)
-print(nCat11)
 
 pd_cat1 = pd_cat1.sample(n=ntrain).reset_index(drop=True)
 pd_cat2 = pd_cat2.sample(n=ntrain).reset_index(drop=True)
@@ -108,45 +103,51 @@ print("pd_cat1", pd_cat1)
 pd_data = pd.concat([pd_cat1, pd_cat2, pd_cat3, pd_cat4, pd_cat5, pd_cat6, pd_cat7, pd_cat8, pd_cat9, pd_cat10, pd_cat11])
 pd_data = pd_data.sample(frac=1).reset_index(drop=True)
 print("pd_data", pd_data)
-x_total = np.array(pd_data.filter(items = inputvars))
+x_total = np.array(pd_data.filter(items = var_jet))
+x_event_total = np.array(pd_data.filter(items = var_event)) 
 y_total = np.array(pd_data.filter(items = ['bCat_higgs5_2Mat'])) # MODIFY #
 
 # Training and Cross-Validation Set
-x_train, x_val, y_train, y_val = train_test_split(x_total, y_total, test_size=0.3)
-x_train = x_train.reshape(-1, 5, 6, 1); x_val = x_val.reshape(-1, 5, 6, 1)
+x_train, x_val, x_event_train, x_event_val, y_train, y_val = train_test_split(x_total, x_event_total,y_total, test_size=0.3)
+x_train = x_train.reshape(-1, 8, 4, 1); x_val = x_val.reshape(-1, 8, 4, 1) # MODIFY as input_shape #
 print("x_train: ",len(x_train),"x_val: ", len(x_val),"y_train: ", len(y_train),"y_val", len(y_val))
 
 ###################################################
 #                      Model                      #
 ###################################################
-epochs = 70; patience_epoch=10; batch_size = 512; print("batch_size :", batch_size) 
+epochs = 1000; patience_epoch=100; batch_size = 1024; print("batch_size :", batch_size) 
 activation_function = tf.nn.relu
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=patience_epoch)
 mc = ModelCheckpoint(outdir+'/best_model.h5', monitor='val_loss', mode='min', save_best_only=True)
 
-model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(filters=16, kernel_size=1, strides=1, activation=activation_function, use_bias=False, input_shape=(5, 6, 1)),
-    tf.keras.layers.Conv2D(filters=32, kernel_size=3, strides=1, activation=activation_function, use_bias=False),
-    tf.keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation=activation_function, use_bias=False),
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(100, activation=activation_function),
-    tf.keras.layers.Dense(11, activation=tf.nn.softmax)
-])
-###################################################
+input_layer = Input(shape=(8, 4, 1))
+conv1 = Conv2D(16, (2, 2), kernel_initializer='lecun_uniform', activation='relu', name='jets_conv0')(input_layer)
+batch_norm1 = BatchNormalization()(conv1)
+conv2 = Conv2D(32, (2, 2), activation='relu', use_bias=False)(batch_norm1)
+batch_norm2 = BatchNormalization()(conv2)
+flatten_layer = Flatten()(batch_norm2)
+dense1 = Dense(50, activation='relu')(flatten_layer)
+batch_norm4 = BatchNormalization()(dense1)
+external_data = Input( shape=(len(var_event), ) ) # Gonna concat the event_vars.
+concatenated_data = Concatenate()([batch_norm4, external_data])
+output_layer = Dense(11, activation='softmax')(concatenated_data)
+model = Model(inputs=[input_layer, external_data], outputs=output_layer)
 model.compile(loss='sparse_categorical_crossentropy',
               optimizer = 'adam',
               metrics=['accuracy', 'sparse_categorical_accuracy'])
+
+hist = model.fit([x_train, x_event_train], y_train, batch_size=batch_size, epochs=epochs, validation_data=([x_val, x_event_val], y_val), callbacks=[es, mc])
+    
 model.summary()
-
-hist = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_val, y_val),
-        callbacks=[es,mc])
-
 end_time = time.time()
+
+###################################################
+
 ###################################################
 #                  Prediction                     #
 ###################################################
-pred_train = model.predict(x_train); print(pred_train); pred_train_arg = np.argmax(pred_train, axis=1)
-pred_val = model.predict(x_val); print(pred_val); pred_val_arg = np.argmax(pred_val, axis=1)
+pred_train = model.predict([x_train, x_event_train]); print(pred_train); pred_train_arg = np.argmax(pred_train, axis=1)
+pred_val = model.predict([x_val, x_event_val]); print(pred_val); pred_val_arg = np.argmax(pred_val, axis=1)
 train_result = pd.DataFrame(np.array([y_train.T[0], pred_train.T[0]]).T, columns=["True", "Pred"]) # True0~4,Pred0~1<"tthh"
 val_result = pd.DataFrame(np.array([y_val.T[0], pred_val.T[0]]).T, columns=["True", "Pred"])
 
@@ -166,11 +167,11 @@ plot_performance(hist=hist, savedir=outdir)
 #                    Accuracy                     #
 ###################################################
 print("#               ACCURACY                  #")
-train_results = model.evaluate(x_train, y_train) # Cause you set two : "accuracy", "sparse_categorical_accuracy"
+train_results = model.evaluate([x_train, x_event_train], y_train) # You set : "accuracy", "sparse_categorical_accuracy"
 train_loss = train_results[0]
 train_acc = train_results[1]
 print(f"Train accuracy: {train_acc * 100:.2f}%")
-test_results = model.evaluate(x_val, y_val)
+test_results = model.evaluate([x_val, x_event_val], y_val)
 test_loss = test_results[0]
 test_acc = test_results[1]
 print(f"Test accuracy: {test_acc * 100:.2f}%")
@@ -181,7 +182,7 @@ print(f"Test accuracy: {test_acc * 100:.2f}%")
 ###################################################
 print("#          FEATURE IMPORTANCE             #")
 model_dir = outdir + '/best_model.h5'
-plot_feature_importance(model_dir, x_val.reshape(-1), inputvars, outdir)
+plot_feature_importance(model_dir, x_val.reshape(-1), var_jet, outdir)
 '''
 ###################################################
 #                     Time                        #
