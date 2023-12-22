@@ -1,51 +1,30 @@
 #ng histograms and save in a pdf.
 # e.g. tthh
-
 import ROOT
 import numpy as np
 
 # Criteria
-PRE = "CUT_FFULL_1130_14TeV"
+PRE = "CF_1216_14TeV"
 Tree = "Delphes"
 print(PRE)
 
 # Input
-tthh = "samples2/" + PRE + "_tthh_di.root"
-ttbbbb = "samples2/" + PRE + "_ttbbbb_di.root"
-ttbbcc = "samples2/" + PRE + "_ttbbcc_di.root"
-ttbb = "samples2/" + PRE + "_ttbb_di.root"
-tthbb = "samples2/" + PRE + "_tthbb_di.root"
+tthh = "samples1/" + PRE + "_tthh_di.root"
+ttbbbb = "samples1/" + PRE + "_ttbbbb_di.root"
+ttbbcc = "samples1/" + PRE + "_ttbbcc_di.root"
+ttbb = "samples1/" + PRE + "_ttbb_di.root"
+tthbb = "samples1/" + PRE + "_tthbb_di.root"
 TreeName = "Delphes"
 
 # Luminosity [fb^-1]
 L = 3000
 
-# MODIFY!!
-# Cross section * Luminosity = Expected Events
-# [DiLeptonic]
-'''
-x_tthh = 3.791e-2 *L
-x_ttbbbb = 3.1e-1 *L
-x_ttbbcc = 5.012e-1 *L
-x_ttbb = 1.076e2 *L
-x_tthbb = 2.105e1 *L
-'''
-
-# [DiLeptonic_HLLHC]
+# [HLLHC : DiLeptonic]
 x_tthh = 4.113e-05  *L * 1000
-x_ttbbbb =  0.0004423 *L * 1000
-x_ttbbcc = 0.0006947 *L * 1000
-x_ttbb = 0.1321 *L * 1000
-x_tthbb = 0.02261 *L * 1000
-
-
-# [SemiLeptonic] ; *2 -> Generated sampeles partially(W+, W-) and merged.
-#x_tthh = 1.139e-4 *L * 1000 * 2  # CHECK AGAIN
-#x_tthh = 1.139e-4 *L * 1000 * 2 
-#x_ttbbbb = 0.049 *L * 1000 * 2
-#x_ttbbcc = 0.0137 *L * 1000 * 2
-#x_ttbb = 2.287 *L * 1000 * 2 
-
+x_ttbbbb =  4.405e-04 *L * 1000
+x_ttbbcc = 6.929e-04 *L * 1000
+x_ttbb =  1.303e-01 *L * 1000  # 1.315e-01 was original. - x_ttbbbb, bbcc.
+x_tthbb = 2.261e-02 *L * 1000
 
 # RDF
 tthh = ROOT.RDataFrame(Tree, tthh)
@@ -57,33 +36,24 @@ tthbb = ROOT.RDataFrame(Tree, tthbb)
 print("Calculating Acceptance and Cutflow")
 
 # MODIFY!! E.S.
-def Acceptance(df):
+def Acceptance(df, df_name):
     Accept = []
     S0 = float(df.Count().GetValue())
-    df = df.Filter("Lep_size >= 2"); S1 = float(df.Count().GetValue())
+    df = df.Filter("Lep_size == 2 && Lep1_pt > 17 && Lep2_pt > 10"); S1 = float(df.Count().GetValue())
     df = df.Filter("Jet_size >= 5"); S2 = float(df.Count().GetValue())
     df = df.Filter("bJet_size >= 5"); S3 = float(df.Count().GetValue())
-    Accept.extend([S0,S1,S2,S3])
+    DNN = float(input(f"{df_name} DNN Efficiency = "))
+    S4 = S3 * DNN
+    Accept.extend([S0,S1,S2,S3, S4])
     print(Accept)
     return Accept
-    '''Yeild
-    print("noCut : ", S0 , (S0/S0)*100, "%")
-    print("S1 : ", S1, (S1/S0)*100, "%")
-    print("S2 : ", S2, (S2/S0)*100, "%")
-    print("S3 : ", S3, (S3/S0)*100, "%")
-    '''
 
 print("________ACCEPTANCE________")
-print("tthh")    
-tthh = Acceptance(tthh)
-print("ttbbbb")
-ttbbbb = Acceptance(ttbbbb)
-print("ttbbcc")
-ttbbcc = Acceptance(ttbbcc)
-print("ttbb")
-ttbb = Acceptance(ttbb)
-print("tthbb")
-tthbb = Acceptance(tthbb)
+tthh = Acceptance(tthh, "tthh")
+ttbbbb = Acceptance(ttbbbb, "ttbbbb")
+ttbbcc = Acceptance(ttbbcc, "ttbbcc")
+ttbb = Acceptance(ttbb, "ttbb")
+tthbb = Acceptance(tthbb, "tthbb")
 
 Acc = {
     "tthh" : [tthh, x_tthh/tthh[0]], 
@@ -101,14 +71,14 @@ def Cutflow(Acc):
     return Acc
 
 print("__________CUTFLOW__________")        
-Acc_re = Cutflow(Acc)
+CF = Cutflow(Acc)
 
 print(" ")
 print("________SIGNIFICANCE________")
 
 # Significance # Modify! # 
-for i in range(0,4):
-    print("Siignificance of ES :", i)
-    print(Acc_re["tthh"][0][i]/np.sqrt(Acc_re["tthh"][0][i]+Acc_re["ttbbbb"][0][i]+Acc_re["ttbbcc"][0][i]+Acc_re["ttbb"][0][i]+Acc_re["tthbb"][0][i]))
+for i in range(0,5):
+    print("Significance of ES :", i)
+    print(CF["tthh"][0][i]/np.sqrt(CF["tthh"][0][i]+CF["ttbbbb"][0][i]+CF["ttbbcc"][0][i]+CF["ttbb"][0][i]+CF["tthbb"][0][i]))
     print("----Done----")
 
