@@ -27,13 +27,12 @@ from utils.var_functions import *
 ###################################################
 #                     I/O                         #
 ###################################################
-indir = "./samples2/"; PRE = "FULL_1204_14TeV"
+indir = "./samples2/"; PRE = "FULL_1217_14TeV"
 outdir = "./DNN_result/" + PRE + "/LetsFind_tthh/bCat_higgs5_2Mat/"    # MODIFY  #
 os.makedirs(outdir, exist_ok=True)
 process_names = ["tthh", "tthbb", "ttbb", "ttbbbb", "ttbbcc"]
 
 dnn1vars = [
-     "bJet_size",
      "bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass",
      "bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass",
      "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass",
@@ -51,6 +50,8 @@ dnn1vars = [
 
 addvars = [
 
+     "bJet_size",
+
      # Lepton
      "Lep_size",
      "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
@@ -61,11 +62,14 @@ addvars = [
     # Defined Kinematic vars
      "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
      "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass"
-
            ]
  
 inputvars = dnn1vars + addvars
-newvars = ["pred_bcat", "higgs_mass", "X_higgs"]
+newvars = [
+        "pred_bfh", "2bfh_1", "2bfh_2", "2bfh_3", "2bfh_4", "2bfh_5", "2bfh_6", "2bfh_7", "2bfh_8", "2bfh_9", "2bfh_10",
+        "bft_1", "bft_2", "bft_3", "bft_4", "bft_5",        
+        "higgs_mass", "higgs_mass_sub", "X_higgs", "bfh_dr", "bfh_Ht", "bfh_dEta", "bfh_Phi", "bfh_mbmb"
+        ]
 inputvars_2 = inputvars + newvars
 openvars = inputvars
 
@@ -107,23 +111,104 @@ y_total = np.array(df_total.filter(items = ["category"]))
 ###################################################
 #               bJet Classification               #
 ###################################################
-model_dir = "DNN_result/B_1204_14TeV/bJetCassification/bCat_higgs5_2Mat/best_model.h5"  ## MODIFY!!! ##
-bft_model = tf.keras.models.load_model(model_dir)
+bfh_dir = "DNN_result/B_1217_14TeV/bJetCassification/bCat_higgs5_2Mat/best_model.h5"  ## MODIFY!!! ##
+bft_dir = "DNN_result/B_1217_14TeV/bJetCassification/bCat_top_1/best_model.h5"
+bfh_model = tf.keras.models.load_model(bfh_dir)
+bft_model = tf.keras.models.load_model(bft_dir)
+bfh_model.summary()
 bft_model.summary()
 print("x_total: ", x_total); print("x_total_shape: ", x_total.shape)
-pred_bcat = bft_model.predict(x_bCat); print("pred_bcat : ", pred_bcat)
-pred_bcat = np.argmax(pred_bcat, axis=1) # (arg 0~10 that with the biggest prob)
+_pred_bfh = bfh_model.predict(x_bCat); print("pred_bfh : ", _pred_bfh)
+_pred_bft = bft_model.predict(x_bCat); print("_pred_bft : ", _pred_bft.shape)
+pred_bfh = np.argmax(_pred_bfh, axis=1) # (arg 0~10 that with the biggest prob)
 
 ### NEW VARIABLES ###
-df_total["pred_bcat"] = pred_bcat
-df_total["higgs_mass"] = df_total.apply(higgs_5_2, axis = 1) # MODIFY #
+df_total["pred_bfh"] = pred_bfh
+for i in range(10):
+    column_name = f"2bfh_{i + 1}"
+    df_total[column_name] = _pred_bfh[:, i]
+for i in range(5):
+    column_name = f"bft_{i + 1}"
+    df_total[column_name] = _pred_bft[:, i]
+print(df_total)
+
+df_total["higgs_mass_list"] = df_total.apply(higgs_5_2, axis = 1) # MODIFY #
+df_total["higgs_mass"] = df_total["higgs_mass_list"].apply(lambda x: x[0])
+df_total["higgs_mass_sub"] = df_total["higgs_mass_list"].apply(lambda x: x[1])
 df_total["X_higgs"] = df_total.apply(X_higgs, axis = 1) # MODIFY #
-#df_total["bfh_dr"] = df_total.apply(bfh_dr, axis = 1) # MODIFY #
+print(df_total)
+
+df_total["bfh_Vars"] = df_total.apply(bfh_Vars, axis = 1)
+df_total["bfh_dr"] = df_total["bfh_Vars"].apply(lambda x: x[0])
+df_total["bfh_Ht"] = df_total["bfh_Vars"].apply(lambda x: x[1])
+df_total["bfh_dEta"] = df_total["bfh_Vars"].apply(lambda x: x[2])
+df_total["bfh_dPhi"] = df_total["bfh_Vars"].apply(lambda x: x[3])
+df_total["bfh_mbmb"] = df_total["bfh_Vars"].apply(lambda x: x[4])
+
+df_plot_tthh = df_total[(df_total["category"] == 0)]
+df_plot_tthbb = df_total[(df_total["category"] == 1)]
+df_plot_ttbb = df_total[(df_total["category"] == 2)]
+df_plot_ttbbbb = df_total[(df_total["category"] == 3)]
+df_plot_ttbbcc = df_total[(df_total["category"] == 4)]
 
 ### PLOTTING ###
-df_plot = df_total[(df_total["category"] == 0) & (df_total["higgs_mass"]>0)] # You can draw higgs from no higgs events.
+plot_multi_histograms(df_plot_tthh, "bfh_dr vs All_dr_tthh", "dr", "Events", outdir,
+                     ('bfh_dr', 'dfh_dr', "red", "stepfilled"),
+                     ('b1b2_dr', 'b1b2_dr', "blue", "step"),
+                     ('b1b3_dr', 'b1b3_dr', "green", "step"),
+                     ('b1b4_dr', 'b1b4_dr', "yellow", "step"),
+                     ('b1b5_dr', 'b1b5_dr', "c", "step"),
+                     ('b2b3_dr', 'b2b3_dr', "m", "step"),
+                     ('b2b4_dr', 'b2b4_dr', "k", "step"),
+                     ('b2b5_dr', 'b2b5_dr', "purple", "step"),
+                     ('b3b4_dr', 'b3b4_dr', "green", "step"),
+                     ('b3b5_dr', 'b3b5_dr', "blue", "step"),
+                     ('b4b5_dr', 'b4b5_dr', "yellow", "step"),
+)
+plot_multi_histograms_dfs("bfh_dEta", "bfh_dEta_Comparison", "dEta", "Normalized Entries", outdir,
+                          (df_plot_tthh, 'tthh', 'red', 'stepfilled'),
+                          (df_plot_ttbbbb, 'ttbbbb', 'blue', 'step'),
+                          (df_plot_ttbbcc, 'ttbbcc', 'purple', 'step'),
+                          (df_plot_ttbb, 'ttbb', 'yellow', 'step'),
+                          (df_plot_tthbb, 'tthbb', 'orange', 'stepfilled')
+        )
+plot_multi_histograms_dfs("bfh_dPhi", "bfh_dPhi_Comparison", "dPhi", "Normalized Entries", outdir,
+                          (df_plot_tthh, 'tthh', 'red', 'stepfilled'),
+                          (df_plot_ttbbbb, 'ttbbbb', 'blue', 'step'),
+                          (df_plot_ttbbcc, 'ttbbcc', 'purple', 'step'),
+                          (df_plot_ttbb, 'ttbb', 'yellow', 'step'),
+                          (df_plot_tthbb, 'tthbb', 'orange', 'stepfilled')
+        )
+plot_multi_histograms_dfs("bfh_mbmb", "bfh_mbmb_Comparison", "mass [Gev]", "Normalized Entries", outdir,
+                          (df_plot_tthh, 'tthh', 'red', 'stepfilled'),
+                          (df_plot_ttbbbb, 'ttbbbb', 'blue', 'step'),
+                          (df_plot_ttbbcc, 'ttbbcc', 'purple', 'step'),
+                          (df_plot_ttbb, 'ttbb', 'yellow', 'step'),
+                          (df_plot_tthbb, 'tthbb', 'orange', 'stepfilled')
+        )
+plot_multi_histograms_dfs("higgs_mass", "higgs_mass_Comparison", "mass [GeV]", "Normalized Entries", outdir,
+                          (df_plot_tthh, 'tthh', 'red', 'stepfilled'),
+                          (df_plot_ttbbbb, 'ttbbbb', 'blue', 'step'),
+                          (df_plot_ttbbcc, 'ttbbcc', 'purple', 'step'),
+                          (df_plot_ttbb, 'ttbb', 'yellow', 'step'),
+                          (df_plot_tthbb, 'tthbb', 'orange', 'stepfilled')
+        )
+plot_multi_histograms_dfs("higgs_mass_sub", "higgs_mass_sub_Comparison", "mass [GeV]", "Normalized Entries", outdir,
+                          (df_plot_tthh, 'tthh', 'red', 'stepfilled'),
+                          (df_plot_ttbbbb, 'ttbbbb', 'blue', 'step'),
+                          (df_plot_ttbbcc, 'ttbbcc', 'purple', 'step'),
+                          (df_plot_ttbb, 'ttbb', 'yellow', 'step'),
+                          (df_plot_tthbb, 'tthbb', 'orange', 'stepfilled')
+        )
+plot_multi_histograms_dfs("X_higgs", "X_higgs_Comparison", "dMass [GeV]", "Normalized Entries", outdir,
+                          (df_plot_tthh, 'tthh', 'red', 'stepfilled'),
+                          (df_plot_ttbbbb, 'ttbbbb', 'blue', 'step'),
+                          (df_plot_ttbbcc, 'ttbbcc', 'purple', 'step'),
+                          (df_plot_ttbb, 'ttbb', 'yellow', 'step'),
+                          (df_plot_tthbb, 'tthbb', 'orange', 'stepfilled')
+        )
 
-higgs_mass = np.array(df_plot.filter(items = ["higgs_mass"]))
+higgs_mass = np.array(df_plot_tthh.filter(items = ["higgs_mass"]))
 hist, bin_edges = np.histogram(higgs_mass, bins=39, range = (0, 500), density=True)
 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 def gaussian(x, mu, sigma, A):
@@ -136,7 +221,7 @@ lower_bound = mu - sigma
 upper_bound = mu + sigma
 
 # Assuming df_new is your DataFrame containing 'close_Higgs_mass'
-close_higgs_mass = np.array(df_plot.filter(items=["close_Higgs_mass"]))
+close_higgs_mass = np.array(df_plot_tthh.filter(items=["close_Higgs_mass"]))
 hist_close, bin_edges_close = np.histogram(close_higgs_mass, bins=39, range=(0, 500), density=True)
 bin_centers_close = (bin_edges_close[:-1] + bin_edges_close[1:]) / 2
 
@@ -161,12 +246,6 @@ plt.plot(bin_centers, gaussian(bin_centers, *popt), 'r-', label='Higgs_mass Fit'
 
 plt.hist(close_higgs_mass, bins=39, range=(10, 400), density=True, alpha=0.2, color='b', label='close_Higgs_mass Histogram')
 plt.plot(bin_centers_close, gaussian(bin_centers_close, *popt_close), 'b-', label='close_Higgs_mass Fit')
-
-#plt.axvline(x=lower_bound, color='orange', linestyle='--', label='Higgs_mass 1 Sigma')
-#plt.axvline(x=upper_bound, color='orange', linestyle='--')
-#plt.axvline(x=lower_bound_close, color='cyan', linestyle='--', label='close_Higgs_mass 1 Sigma')
-#plt.axvline(x=upper_bound_close, color='cyan', linestyle='--')
-
 plt.axvline(x=125, color='magenta', linestyle='--', label='x=125')
 
 plt.fill_betweenx([0, A], lower_bound, upper_bound, color='orange', alpha=0.3, label='Higgs_mass 1 Sigma Range')
@@ -179,41 +258,14 @@ plt.legend()
 plt.savefig(outdir+'/higgs_mass_and_close_higgs_mass_dnn.pdf')
 plt.show()
 
-'''
-plt.hist(higgs_mass, bins=39, range = (10,400), density=True, alpha=0.2, color='g', label='Histogram')
-plt.plot(bin_centers, gaussian(bin_centers, *popt), 'r-', label='Fit')
-plt.axvline(x=lower_bound, color='b', linestyle='--', label='1 Sigma')
-plt.axvline(x=upper_bound, color='b', linestyle='--')
-plt.axvline(x=125, color='magenta', linestyle='--', label='x=125')
-plt.fill_betweenx([0, A], lower_bound, upper_bound, color='blue', alpha=0.3, label='1 Sigma Range')
-plt.xlabel('Higgs Mass [GeV]')
-plt.ylabel('Probability Density')
-plt.title(f'Higgs_mass: mu = {popt[0]:.2f}, sigma = {popt[1]:.2f}')
-plt.legend()
-plt.savefig(outdir+'/higgs_mass_dnn.pdf')
-plt.show()
-'''
-
 ###################################################
 #                PreProcessing_2                  #
 ###################################################
-# Case1 : One Hot Encoding for pred_bcat # 
 _x_total = df_total.filter(items = inputvars_2)
-_x_ohe = pd.get_dummies(_x_total['pred_bcat'], prefix='pred_bcat', drop_first=True)
-_x_total = _x_total.drop('pred_bcat', axis=1)
-_x_total = pd.concat([_x_total, _x_ohe], axis = 1)
+_x_total = _x_total.drop('pred_bfh', axis=1)
 x_total = np.array(_x_total)
 y_total = np.array(df_total.filter(items = ["category"]))
-# Case1 : One Hot Encoding for pred_bcat # 
 
-'''
-# Case 2 : No OHE, No pred_bcat #
-_x_total = df_total.filter(items = inputvars_2)
-_x_total = _x_total.drop('pred_bcat', axis=1)
-x_total = np.array(_x_total)
-y_total = np.array(df_total.filter(items = ["category"]))
-# Case 2 : No OHE, No pred_bcat #
-'''
 
 print("Final x = ", x_total)
 print("Final y = ", y_total)
@@ -238,7 +290,7 @@ x_train, x_val, y_train, y_val = train_test_split(x_total, y_total, test_size=0.
 ###################################################
 #                      Model                      #
 ###################################################
-epochs = 1000; patience_epoch = 10; batch_size = 1024; print("batch size :", batch_size)
+epochs = 1000; patience_epoch = 30; batch_size = 1024; print("batch size :", batch_size)
 activation_function='relu'
 weight_initializer = 'random_normal'
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=patience_epoch)
@@ -249,8 +301,11 @@ model = tf.keras.models.Sequential()
 model.add(tf.keras.layers.Flatten(input_shape = (x_train.shape[1],)))
 ###############    Hidden Layer     ###############
 model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.Dense(10, activation=activation_function))
+#model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Dense(50, activation=activation_function))
-model.add(tf.keras.layers.BatchNormalization())
+#model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.Dropout(0.2))
 model.add(tf.keras.layers.Dense(50, activation=activation_function, kernel_regularizer='l2', kernel_initializer=weight_initializer))
 ###############    Output Layer     ###############
 model.add(tf.keras.layers.Dense(len(process_names), activation="softmax"))
@@ -312,10 +367,11 @@ print(f"Test accuracy: {test_acc * 100:.2f}%")
 ###################################################
 #                Feature Importance               #
 ###################################################
+'''
 print("#          FEATURE IMPORTANCE             #")
-model_dir = outdir + '/best_model.h5'
-plot_feature_importance(model_dir, x_val, _x_total.columns, outdir)
-
+bfh_dir = outdir + '/best_model.h5'
+plot_feature_importance(bfh_dir, x_val, _x_total.columns, outdir)
+'''
 ###################################################
 #                     Time                        #
 ###################################################

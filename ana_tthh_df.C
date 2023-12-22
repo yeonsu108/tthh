@@ -52,7 +52,6 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("GenMissingET_eta", "GenMissingET.Eta")
                   .Define("GenMissingET_phi", "GenMissingET.Phi");
                   
-
     // Gen and Matching //
     auto df1 = df0.Define("isLast", ::isLast, {"Particle.PID", "Particle.D1", "Particle.D2"})
                   .Define("Top", "abs(Particle.PID) == 6 && isLast").Define("nTop", "Sum(Top)")
@@ -97,8 +96,12 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("Q_Higgs2_mass", "Q_Higgs2_var[3]")
                   .Define("Q_Higgs_mass", ::ConcatFloat, {"Q_Higgs1_mass", "Q_Higgs2_mass"})
 
+                  // GenJet
+                  .Define("GenJet_Avg", ::Avg, {"GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("GenJet_dr_avg", "GenJet_Avg[0]")
+                  .Define("GenJet_dEta_avg", "GenJet_Avg[1]")
+                  .Define("GenJet_dPhi_avg", "GenJet_Avg[2]")
 
-                  
                   // Gen bJet Matching
                   .Define("GenbJetFromTop1_idx", ::dRMatching_idx, {"GenbFromTop1_idx", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
                   .Define("GenbJetFromTop2_idx", ::dRMatching_idx, {"GenbFromTop2_idx", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
@@ -175,11 +178,26 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("GenHiggs1_eta", "GenHiggs1_var[1]")
                   .Define("GenHiggs1_phi", "GenHiggs1_var[2]")
                   .Define("GenHiggs1_mass", "GenHiggs1_var[3]")
+                  .Define("GenHiggs1_bdr", "GenHiggs1_var[4]")
+                  .Define("GenHiggs1_Ht", "GenHiggs1_var[5]")
+                  .Define("GenHiggs1_dEta", "GenHiggs1_var[6]")
+                  .Define("GenHiggs1_dPhi", "GenHiggs1_var[7]")
+                  .Define("GenHiggs1_mbmb", "GenHiggs1_var[8]")
                   .Define("GenHiggs2_pt", "GenHiggs2_var[0]")
                   .Define("GenHiggs2_eta", "GenHiggs2_var[1]")
                   .Define("GenHiggs2_phi", "GenHiggs2_var[2]")
                   .Define("GenHiggs2_mass", "GenHiggs2_var[3]")
-                  .Define("GenHiggs_mass", ::ConcatFloat, {"GenHiggs1_mass", "GenHiggs2_mass"});
+                  .Define("GenHiggs2_bdr", "GenHiggs2_var[4]")
+                  .Define("GenHiggs2_Ht", "GenHiggs2_var[5]")
+                  .Define("GenHiggs2_dEta", "GenHiggs2_var[6]")
+                  .Define("GenHiggs2_dPhi", "GenHiggs2_var[7]")
+                  .Define("GenHiggs2_mbmb", "GenHiggs2_var[8]")
+                  .Define("GenHiggs_mass", ::ConcatFloat, {"GenHiggs1_mass", "GenHiggs2_mass"})
+                  .Define("GenHiggs_bdr", ::ConcatFloat, {"GenHiggs1_bdr", "GenHiggs2_bdr"})
+                  .Define("GenHiggs_Ht", ::ConcatFloat, {"GenHiggs1_Ht", "GenHiggs2_Ht"})
+                  .Define("GenHiggs_dEta", ::ConcatFloat, {"GenHiggs1_dEta", "GenHiggs2_dEta"})
+                  .Define("GenHiggs_dPhi", ::ConcatFloat, {"GenHiggs1_dPhi", "GenHiggs2_dPhi"})
+                  .Define("GenHiggs_mbmb", ::ConcatFloat, {"GenHiggs1_mbmb", "GenHiggs2_mbmb"});
 
     // Reco Matching //
     auto df3 = df2.Define("b1JetFromHiggs1_pt", ::idx_var, {"Jet.PT", "b1JetFromHiggs1_idx"})
@@ -189,11 +207,10 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("bJetFromTop1_pt", ::idx_var, {"Jet.PT", "bJetFromTop1_idx"})
                   .Define("bJetFromTop2_pt", ::idx_var, {"Jet.PT", "bJetFromTop2_idx"});
                   
-
     // Reco //
-    auto df4 = df3.Define("goodJet", "Jet.PT>=25 && abs(Jet.Eta)<2.8")
-                  .Define("goodElectron", "Electron.PT>=15 && abs(Electron.Eta)<2.8")
-                  .Define("goodMuon", "Muon.PT>=15 && abs(Muon.Eta)<2.8")
+    auto df4 = df3.Define("goodJet", "Jet.PT>=25 && abs(Jet.Eta)<3.0")
+                  .Define("goodElectron", "Electron.PT>=10 && abs(Electron.Eta)<2.8")
+                  .Define("goodMuon", "Muon.PT>=10 && abs(Muon.Eta)<2.8")
 
                   .Define("Jet_pt", "Jet.PT[goodJet]")
                   .Define("Jet_eta", "Jet.Eta[goodJet]")
@@ -235,8 +252,8 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("MET_Eta", "MissingET.Eta")
                   .Define("MET_Phi", "MissingET.Phi")
                   // You Must Use [bi_Tag] Before Filter // 
-
-                  .Filter("Lep_size >= 2")
+                  
+                  .Filter("Lep_size == 2 && Lep1_pt > 17 && Lep2_pt > 10")
                   .Filter("Jet_size >= 5")
                   .Filter("bJet_size >= 5")
                   .Define("bJet_pt_scheme", ::pt_scheme, {"b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt", "bJetFromTop1_pt", "bJetFromTop2_pt"})
@@ -297,6 +314,7 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("b4b5_dr", ::dR2, {"bJet4_pt", "bJet4_eta", "bJet4_phi", "bJet4_mass", "bJet5_pt", "bJet5_eta", "bJet5_phi", "bJet5_mass"})
                   .Define("bb_dr", ::ConcatFloat_withoutSort_10, {"b1b2_dr", "b1b3_dr", "b1b4_dr", "b1b5_dr", "b2b3_dr", "b2b4_dr", "b2b5_dr", "b3b4_dr", "b3b5_dr", "b4b5_dr"})
 
+                  
                   .Define("b_Vars", ::Vars, {"bb_dr", "bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass", "bJet_E"})
                   .Define("bb_avg_dr", "b_Vars[0]")
                   .Define("bb_max_dr", "b_Vars[1]")
@@ -323,7 +341,11 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("bCat_higgs5_2", ::bCat_higgs5_2, {"b1", "b2", "b3", "b4", "b5"})
                   .Define("bCat_higgs5_3", ::bCat_higgs5_3, {"b1", "b2", "b3", "b4", "b5"})
                   .Define("bCat_higgs5_2Mat", ::bCat_higgs5_2Mat, {"b1", "b2", "b3", "b4", "b5"})
-                  .Define("bCat_top_1", ::bCat_top_1, {"b1", "b2", "b3", "b4", "b5"});
+                  .Define("bCat_top_1", ::bCat_top_1, {"b1", "b2", "b3", "b4", "b5"})
+
+                  .Define("Event_shapes", ::Event_shapes, {"bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass"})
+                  .Define("aplanarity", "Event_shapes[0]")
+                  .Define("sphericity", "Event_shapes[1]");
                   
 
     // Reconstruction of Higgs //
@@ -338,9 +360,10 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
                   .Define("Chi_min", "RecoHiggs[7]");
 
 
-    auto df6 = df5.Filter("isMatchable > 0"); 
+//    auto df6 = df5.Filter("isMatchable > 0"); 
 
     std::initializer_list<std::string> variables = {
+
     "ParticlePID", "ParticlePT", "D1", "D2", "JetBTag", 
     "Top1_idx", "GenbFromTop1_idx", "Top2_idx", "GenbFromTop2_idx", 
     "Higgs1_idx", "Genb1FromHiggs1_idx", "Genb2FromHiggs1_idx",
@@ -350,7 +373,17 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
     "nGenbJet", "nbJet",
 
     "bQuarkFromTop1_pt", "bQuarkFromTop2_pt", "b1QuarkFromHiggs1_pt", "b2QuarkFromHiggs1_pt", "b1QuarkFromHiggs2_pt", "b2QuarkFromHiggs2_pt",
+
+    // Comparison
+    "GenJet_Avg", "GenJet_dr_avg", "GenJet_dEta_avg", "GenJet_dPhi_avg",
+    // DNN Vars Candidates 
     "GenHiggs_mass", "GenHiggs1_mass", "GenHiggs2_mass",
+    "GenHiggs1_bdr", "GenHiggs2_bdr", "GenHiggs_bdr", 
+    "GenHiggs1_Ht", "GenHiggs2_Ht", "GenHiggs_Ht", 
+    "GenHiggs1_dEta", "GenHiggs2_dEta", "GenHiggs_dEta", 
+    "GenHiggs1_dPhi", "GenHiggs2_dPhi", "GenHiggs_dPhi", 
+    "GenHiggs1_mbmb", "GenHiggs2_mbmb", "GenHiggs_mbmb", 
+
     "Q_Higgs_mass", "Q_Higgs1_mass", "Q_Higgs2_mass",
     "Genb1JetFromHiggs1_pt", "Genb2JetFromHiggs1_pt", "Genb1JetFromHiggs2_pt", "Genb2JetFromHiggs2_pt", 
     "GenbJetFromTop1_pt", "GenbJetFromTop2_pt",
@@ -360,6 +393,8 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
     "GenMuddiness",
     "Overlap_bt1", "Overlap_bt2", "Overlap_b1h1", "Overlap_b2h1", "Overlap_b1h2", "Overlap_b2h2",
     "Muddiness",
+
+    "nMatchedbJet",
                      
     "GenbJet_pt_scheme",
     "b1", "b2", "b3", "b4", "nMatched_bFromTop", "nMatched_bFromHiggs", "nMatched_bJet",
@@ -368,7 +403,7 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
 
     //----------------Reco---------------------//
 
-    "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "Jet_size",
+     "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "Jet_size",
      "bJet_pt", "bJet_eta", "bJet_phi", "bJet_mass", "bJet_size",
      "Jet1_pt", "Jet1_eta", "Jet1_phi", "Jet1_mass",
      "Jet2_pt", "Jet2_eta", "Jet2_phi", "Jet2_mass",
@@ -393,17 +428,19 @@ void ana_tthh_df(std::string channel, std::string outdir="./samples1/"){
      "MET_E", "MET_Eta", "MET_Phi",
 
     //----------------New-----------------------//
+
      "bb_dr", "b_Vars", "bb_avg_dr", "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
     "jj_dr", "j_Vars", "jj_avg_dr", "jj_max_dr", "jj_min_dr", "j_ht", "jj_dEta_WhenMaxdR", "j_cent", "jj_max_deta", "jj_max_mass", "jj_twist", 
     "close_Higgs_pt", "close_Higgs_eta", "close_Higgs_phi", "close_Higgs_mass",
 
-     "isMatchable", "Matched_idx1", "Matched_idx2", "Correct_Chi", "Chi_min",
-//    "Lep_size", "Jet_size", "bJet_size",
+     "isMatchable", "Matched_idx1", "Matched_idx2", "Correct_Chi", "Chi_min", 
+     "Event_shapes", "aplanarity", "sphericity",
+
     };
 
     // MODIFY!!
-    df5.Snapshot(treename, outdir+ "FULL_1204_14TeV_" + channel + ".root", variables); 
-    df6.Snapshot(treename, outdir+ "FULL_1204_14TeV_Matchable_" + channel + ".root", variables); 
+    df5.Snapshot(treename, outdir+ "FULL_1218_14TeV_" + channel + ".root", variables); 
+//    df6.Snapshot(treename, outdir+ "SAM_1207_14TeV_Matchable_" + channel + ".root", variables); 
     std::cout << "done" << std::endl; 
 
     //df.Snapshot<TClonesArray, TClonesArray, TClonesArray, TClonesArray>("outputTree", "out.root", variables, ROOT::RDF::RSnapshotOptions("RECreate", ROOT::kZLIB, 1, 0, 99, false));

@@ -21,13 +21,12 @@ from sklearn.model_selection import train_test_split
 #                     I/O                         #
 ###################################################
 indir = "./samples1/"; PRE = "B_1217_14TeV" # Should be apart from data for event classification.
-outdir = "./DNN_result/" + PRE + "/bJetCassification/bCat_higgs5_2Mat/" # MODIFY #
+outdir = "./DNN_result/" + PRE + "/bJetCassification/bCat_top_1/" # MODIFY #
 os.makedirs(outdir, exist_ok=True)
-class_names = ["Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "NoCat"]
+class_names = ["Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "NoCat"]
 
 inputvars = [
 
-#     "bJet_size",
      "bJet1_pt", "bJet1_eta", "bJet1_phi", "bJet1_mass",
      "bJet2_pt", "bJet2_eta", "bJet2_phi", "bJet2_mass",
      "bJet3_pt", "bJet3_eta", "bJet3_phi", "bJet3_mass",
@@ -40,26 +39,33 @@ inputvars = [
      "b3b4_dr", "b3b5_dr",
      "b4b5_dr",
 
+     # Lepton
+#     "bJet_size",
+#     "Lep_size",
+#     "Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_t",
+#     "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_t",
+#     "MET_E", # why decrease..
+
+
+     # Defined Kinematic vars
+#     "bb_max_dr", "bb_min_dr", "b_ht", "bb_dEta_WhenMaxdR", "b_cent", "bb_max_deta", "bb_max_mass", "bb_twist",
+#     "close_Higgs_pt", "close_Higgs_phi", "close_Higgs_mass", "close_Higgs_eta",
+
             ]
 
-catvar = ["bCat_higgs5_2Mat"] # MODIFY #
+catvar = ["bCat_top_1"] # MODIFY #
 openvars = inputvars + catvar
 
 ###################################################
 #                 PreProcessing                   #
 ###################################################
 pd_data = uproot.open(indir+PRE+"_tthh_di.root")["Delphes"].arrays(openvars,library="pd")
-pd_cat1 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 0]
-pd_cat2 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 1]
-pd_cat3 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 2]
-pd_cat4 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 3]
-pd_cat5 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 4]
-pd_cat6 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 5]
-pd_cat7 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 6]
-pd_cat8 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 7]
-pd_cat9 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 8]
-pd_cat10 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 9]
-pd_cat11 = pd_data.loc[pd_data["bCat_higgs5_2Mat"] == 10]
+pd_cat1 = pd_data.loc[pd_data["bCat_top_1"] == 0]
+pd_cat2 = pd_data.loc[pd_data["bCat_top_1"] == 1]
+pd_cat3 = pd_data.loc[pd_data["bCat_top_1"] == 2]
+pd_cat4 = pd_data.loc[pd_data["bCat_top_1"] == 3]
+pd_cat5 = pd_data.loc[pd_data["bCat_top_1"] == 4]
+pd_cat6 = pd_data.loc[pd_data["bCat_top_1"] == 5]
 
 nCat1 = len(pd_cat1) 
 nCat2 = len(pd_cat2)
@@ -67,12 +73,7 @@ nCat3 = len(pd_cat3)
 nCat4 = len(pd_cat4)
 nCat5 = len(pd_cat5)
 nCat6 = len(pd_cat6)
-nCat7 = len(pd_cat7)
-nCat8 = len(pd_cat8)
-nCat9 = len(pd_cat9)
-nCat10 = len(pd_cat10)
-nCat11 = len(pd_cat11)
-ntrain = min(nCat1, nCat2, nCat3, nCat4, nCat5, nCat6, nCat7, nCat8, nCat9, nCat10)#, nCat11)
+ntrain = min(nCat1, nCat2, nCat3, nCat4, nCat5, nCat6)
 print("ntrain = ", ntrain)
 
 pd_cat1 = pd_cat1.sample(n=ntrain).reset_index(drop=True)
@@ -81,18 +82,13 @@ pd_cat3 = pd_cat3.sample(n=ntrain).reset_index(drop=True)
 pd_cat4 = pd_cat4.sample(n=ntrain).reset_index(drop=True)
 pd_cat5 = pd_cat5.sample(n=ntrain).reset_index(drop=True)
 pd_cat6 = pd_cat6.sample(n=ntrain).reset_index(drop=True)
-pd_cat7 = pd_cat7.sample(n=ntrain).reset_index(drop=True)
-pd_cat8 = pd_cat8.sample(n=ntrain).reset_index(drop=True)
-pd_cat9 = pd_cat9.sample(n=ntrain).reset_index(drop=True)
-pd_cat10 = pd_cat10.sample(n=ntrain).reset_index(drop=True)
-pd_cat11 = pd_cat11.sample(n=ntrain).reset_index(drop=True)
 print("pd_cat1", pd_cat1)
 
-pd_data = pd.concat([pd_cat1, pd_cat2, pd_cat3, pd_cat4, pd_cat5, pd_cat6, pd_cat7, pd_cat8, pd_cat9, pd_cat10, pd_cat11])
+pd_data = pd.concat([pd_cat1, pd_cat2, pd_cat3, pd_cat4, pd_cat5, pd_cat6])
 pd_data = pd_data.sample(frac=1).reset_index(drop=True)
 print("pd_data", pd_data)
 x_total = np.array(pd_data.filter(items = inputvars))
-y_total = np.array(pd_data.filter(items = ['bCat_higgs5_2Mat'])) # MODIFY #
+y_total = np.array(pd_data.filter(items = ['bCat_top_1'])) # MODIFY #
 
 # Training and Cross-Validation Set
 x_train, x_val, y_train, y_val = train_test_split(x_total, y_total, test_size=0.3)
@@ -101,7 +97,7 @@ print("x_train: ",len(x_train),"x_val: ", len(x_val),"y_train: ", len(y_train),"
 ###################################################
 #                      Model                      #
 ###################################################
-epochs = 1000; patience_epoch = 10; batch_size = 512; print("batch size :", batch_size)
+epochs = 1000; patience_epoch = 30; batch_size = 512; print("batch size :", batch_size)
 activation_function='relu'
 weight_initializer = 'random_normal'
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=patience_epoch)
@@ -114,7 +110,10 @@ model.add(tf.keras.layers.Flatten(input_shape = (x_train.shape[1],)))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Dense(30, activation=activation_function))
 model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Dense(100, activation=activation_function, kernel_regularizer='l2', kernel_initializer=weight_initializer))
+model.add(tf.keras.layers.Dense(20, activation=activation_function))
+#model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.Dropout(0.2))    
+model.add(tf.keras.layers.Dense(20, activation=activation_function, kernel_regularizer='l2', kernel_initializer=weight_initializer))
 ###############    Output Layer     ###############
 print("class_names : ", len(class_names))
 model.add(tf.keras.layers.Dense(len(class_names), activation="softmax"))
